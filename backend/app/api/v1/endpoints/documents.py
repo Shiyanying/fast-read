@@ -3,12 +3,16 @@ from sqlalchemy.orm import Session
 from typing import List
 import os
 import shutil
+import logging
 from app.core.database import get_db
 from app.core.config import settings
 from app.models.document import Document, Page
+from app.models.word import WordClick
 from app.schemas.document import DocumentResponse, DocumentListResponse, PageResponse
 from app.api.v1.dependencies import get_current_user
 from app.services.document_parser import parse_document
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -161,13 +165,48 @@ async def delete_document(
             detail="文档不存在"
         )
     
-    # 删除文件
-    if os.path.exists(document.file_path):
-        os.remove(document.file_path)
+    # 删除文件（即使文件删除失败，也继续删除数据库记录）
+    file_path = document.file_path
+    if file_path and os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+            logger.info(f"成功删除文件: {file_path}")
+        except OSError as e:
+            # 文件删除失败（可能是权限问题、文件被占用等），记录日志但继续删除数据库记录
+            logger.warning(f"删除文件失败: {file_path}, 错误: {str(e)}")
+        except Exception as e:
+            # 其他异常，记录日志但继续删除数据库记录
+            logger.error(f"删除文件时发生未知错误: {file_path}, 错误: {str(e)}")
     
-    # 删除数据库记录（级联删除页面）
-    db.delete(document)
-    db.commit()
+    # 删除数据库记录（先删除关联记录，再删除文档）
+    try:
+        # 先删除关联的 WordClick 记录
+        word_clicks = db.query(WordClick).filter(
+            WordClick.document_id == document_id
+        ).all()
+        for word_click in word_clicks:
+            db.delete(word_click)
+        logger.info(f"删除关联的 WordClick 记录: {len(word_clicks)} 条")
+        
+        # 删除关联的 Page 记录
+        pages = db.query(Page).filter(
+            Page.document_id == document_id
+        ).all()
+        for page in pages:
+            db.delete(page)
+        logger.info(f"删除关联的 Page 记录: {len(pages)} 条")
+        
+        # 最后删除文档记录
+        db.delete(document)
+        db.commit()
+        logger.info(f"成功删除文档记录: document_id={document_id}")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"删除文档记录失败: document_id={document_id}, 错误: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"删除文档失败: {str(e)}"
+        )
     
     return None
 

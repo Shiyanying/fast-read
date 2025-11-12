@@ -1,8 +1,10 @@
 <template>
   <div class="login-container">
     <div class="login-box">
-      <h1 class="title">ReadSmart</h1>
-      <p class="subtitle">个性化英语外刊阅读平台</p>
+      <div class="login-header">
+        <h1 class="title">ReadSmart</h1>
+        <p class="subtitle">个性化英语外刊阅读平台</p>
+      </div>
       
       <el-form
         ref="loginFormRef"
@@ -16,6 +18,7 @@
             placeholder="用户名"
             size="large"
             prefix-icon="User"
+            class="apple-input"
           />
         </el-form-item>
         
@@ -26,6 +29,7 @@
             placeholder="密码"
             size="large"
             prefix-icon="Lock"
+            class="apple-input"
             @keyup.enter="handleLogin"
           />
         </el-form-item>
@@ -45,7 +49,7 @@
       
       <div class="footer">
         <span>还没有账号？</span>
-        <el-link type="primary" @click="$router.push('/register')">
+        <el-link type="primary" @click="$router.push('/register')" class="link">
           立即注册
         </el-link>
       </div>
@@ -105,44 +109,129 @@ async function handleLogin() {
   align-items: center;
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
 }
 
 .login-box {
-  width: 400px;
-  padding: 40px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 420px;
+  padding: 48px 40px;
+  background: var(--apple-card-background);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-radius: var(--apple-border-radius-lg);
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
+  box-shadow: var(--apple-shadow-lg);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 40px;
 }
 
 .title {
-  text-align: center;
-  font-size: 32px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 8px;
+  font-size: 36px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--apple-blue) 0%, #5856D6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 12px 0;
+  letter-spacing: -1px;
 }
 
 .subtitle {
-  text-align: center;
-  color: #666;
-  margin-bottom: 32px;
-  font-size: 14px;
+  font-size: 15px;
+  color: var(--apple-text-secondary);
+  margin: 0;
 }
 
 .login-form {
-  margin-top: 24px;
+  margin-top: 32px;
+}
+
+:deep(.apple-input .el-input__wrapper) {
+  border-radius: 12px;
+  box-shadow: var(--apple-shadow-sm);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  transition: var(--apple-transition);
+  padding: 12px 16px;
+}
+
+:deep(.apple-input .el-input__wrapper:hover) {
+  box-shadow: var(--apple-shadow-md);
+}
+
+:deep(.apple-input .el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
 
 .login-button {
   width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--apple-blue) 0%, #5856D6 100%);
+  border: none;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+  transition: var(--apple-transition);
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+}
+
+.login-button:active {
+  transform: translateY(0);
 }
 
 .footer {
   text-align: center;
-  margin-top: 24px;
-  color: #666;
+  margin-top: 32px;
+  color: var(--apple-text-secondary);
   font-size: 14px;
 }
-</style>
 
+.link {
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+:deep(.el-link__inner) {
+  color: var(--apple-blue);
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 16px;
+  }
+  
+  .login-box {
+    padding: 32px 24px;
+    max-width: 100%;
+  }
+  
+  .title {
+    font-size: 28px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+  }
+  
+  .login-form {
+    margin-top: 24px;
+  }
+  
+  :deep(.el-input__wrapper) {
+    padding: 10px 14px;
+  }
+  
+  .login-button {
+    height: 44px;
+    font-size: 15px;
+  }
+}
+</style>

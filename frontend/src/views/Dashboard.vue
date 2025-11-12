@@ -1,89 +1,94 @@
 <template>
   <div class="dashboard">
     <div class="upload-section">
-      <el-upload
-        ref="uploadRef"
-        :action="uploadUrl"
-        :headers="uploadHeaders"
-        :on-success="handleUploadSuccess"
-        :on-error="handleUploadError"
-        :before-upload="beforeUpload"
-        :show-file-list="false"
-        drag
-        class="upload-area"
-      >
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-        <div class="el-upload__text">
-          将文件拖到此处，或<em>点击上传</em>
-        </div>
-        <template #tip>
-          <div class="el-upload__tip">
-            支持 .txt, .pdf, .epub 格式，文件大小不超过 10MB
+      <div class="upload-card">
+        <el-upload
+          ref="uploadRef"
+          :action="uploadUrl"
+          :headers="uploadHeaders"
+          :on-success="handleUploadSuccess"
+          :on-error="handleUploadError"
+          :before-upload="beforeUpload"
+          :show-file-list="false"
+          drag
+          class="upload-area"
+        >
+          <div class="upload-content">
+            <div class="upload-icon-wrapper">
+              <el-icon class="upload-icon"><upload-filled /></el-icon>
+            </div>
+            <div class="upload-text">
+              <p class="upload-title">拖拽文件到此处上传</p>
+              <p class="upload-subtitle">或 <span class="upload-link">点击选择文件</span></p>
+            </div>
+            <p class="upload-tip">
+              支持 .txt, .pdf, .epub 格式，文件大小不超过 10MB
+            </p>
           </div>
-        </template>
-      </el-upload>
+        </el-upload>
+      </div>
     </div>
     
     <div class="library-section">
-      <h3 class="section-title">我的外刊库</h3>
+      <div class="section-header">
+        <h2 class="section-title">我的外刊库</h2>
+        <div class="search-wrapper">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索文档..."
+            class="search-input"
+            clearable
+            @input="handleSearch"
+          >
+            <template #prefix>
+              <el-icon class="search-icon"><Search /></el-icon>
+            </template>
+          </el-input>
+        </div>
+      </div>
       
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索文档..."
-        class="search-input"
-        clearable
-        @input="handleSearch"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      
-      <el-row :gutter="20" class="document-grid">
-        <el-col
+      <div class="document-grid" v-if="filteredDocuments.length > 0">
+        <div
           v-for="doc in filteredDocuments"
           :key="doc.id"
-          :xs="24"
-          :sm="12"
-          :md="8"
-          :lg="6"
+          class="document-card"
+          @click="openDocument(doc.id)"
         >
-          <el-card
-            class="document-card"
-            shadow="hover"
-            @click="openDocument(doc.id)"
-          >
-            <template #header>
-              <div class="card-header">
-                <span class="doc-title">{{ doc.title }}</span>
-                <el-button
-                  type="danger"
-                  :icon="Delete"
-                  circle
-                  size="small"
-                  @click.stop="handleDelete(doc.id)"
-                />
-              </div>
-            </template>
-            <div class="card-content">
-              <p class="doc-meta">
-                <el-icon><Document /></el-icon>
-                {{ doc.filename }}
-              </p>
-              <p class="doc-meta">
-                <el-icon><Calendar /></el-icon>
-                {{ formatDate(doc.created_at) }}
-              </p>
-              <p class="doc-meta">
-                <el-icon><Files /></el-icon>
-                {{ doc.total_pages }} 页
-              </p>
+          <div class="card-header">
+            <h3 class="doc-title">{{ doc.title }}</h3>
+            <el-button
+              type="danger"
+              :icon="Delete"
+              circle
+              size="small"
+              class="delete-btn"
+              @click.stop="handleDelete(doc.id)"
+            />
+          </div>
+          <div class="card-content">
+            <div class="doc-meta">
+              <el-icon class="meta-icon"><Document /></el-icon>
+              <span class="meta-text">{{ doc.filename }}</span>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+            <div class="doc-meta">
+              <el-icon class="meta-icon"><Calendar /></el-icon>
+              <span class="meta-text">{{ formatDate(doc.created_at) }}</span>
+            </div>
+            <div class="doc-meta">
+              <el-icon class="meta-icon"><Files /></el-icon>
+              <span class="meta-text">{{ doc.total_pages }} 页</span>
+            </div>
+          </div>
+        </div>
+      </div>
       
-      <el-empty v-if="filteredDocuments.length === 0" description="暂无文档" />
+      <div class="empty-state" v-else>
+        <el-empty description="暂无文档">
+          <template #image>
+            <div class="empty-icon">📚</div>
+          </template>
+        </el-empty>
+      </div>
     </div>
   </div>
 </template>
@@ -179,9 +184,15 @@ async function handleDelete(documentId) {
     ElMessage.success('删除成功')
     fetchDocuments()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+    // 用户取消操作时不显示错误
+    if (error === 'cancel' || error?.toString().includes('cancel')) {
+      return
     }
+    
+    // 显示详细的错误信息
+    const errorMessage = error?.response?.data?.detail || error?.message || '删除失败'
+    ElMessage.error(errorMessage)
+    console.error('删除文档失败:', error)
   }
 }
 
@@ -197,81 +208,319 @@ onMounted(() => {
 
 <style scoped>
 .dashboard {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
 .upload-section {
-  margin-bottom: 32px;
+  margin-bottom: 40px;
+}
+
+.upload-card {
+  background: var(--apple-card-background);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-radius: var(--apple-border-radius-lg);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--apple-shadow-md);
+  overflow: hidden;
+  transition: var(--apple-transition);
+}
+
+.upload-card:hover {
+  box-shadow: var(--apple-shadow-lg);
+  transform: translateY(-2px);
 }
 
 .upload-area {
   width: 100%;
 }
 
-.el-upload__tip {
-  color: #999;
-  font-size: 12px;
+:deep(.el-upload-dragger) {
+  background: transparent;
+  border: none;
+  padding: 60px 40px;
+  width: 100%;
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.upload-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--apple-blue) 0%, #5856D6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.2);
+}
+
+.upload-icon {
+  font-size: 36px;
+  color: white;
+}
+
+.upload-text {
+  text-align: center;
+}
+
+.upload-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--apple-text-primary);
+  margin: 0 0 8px 0;
+}
+
+.upload-subtitle {
+  font-size: 15px;
+  color: var(--apple-text-secondary);
+  margin: 0;
+}
+
+.upload-link {
+  color: var(--apple-blue);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.upload-tip {
+  font-size: 13px;
+  color: var(--apple-text-secondary);
+  margin: 0;
   margin-top: 8px;
 }
 
 .library-section {
-  background: white;
-  padding: 24px;
-  border-radius: 8px;
+  background: var(--apple-card-background);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-radius: var(--apple-border-radius-lg);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--apple-shadow-md);
+  padding: 32px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
 .section-title {
-  margin-bottom: 20px;
-  color: #333;
-  font-size: 20px;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--apple-text-primary);
+  margin: 0;
+  letter-spacing: -0.5px;
 }
 
-.search-input {
-  margin-bottom: 20px;
+.search-wrapper {
+  flex: 1;
   max-width: 400px;
 }
 
+.search-input {
+  width: 100%;
+}
+
+:deep(.el-input__wrapper) {
+  border-radius: 20px;
+  box-shadow: var(--apple-shadow-sm);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  transition: var(--apple-transition);
+}
+
+:deep(.el-input__wrapper:hover) {
+  box-shadow: var(--apple-shadow-md);
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.search-icon {
+  color: var(--apple-gray-4);
+}
+
 .document-grid {
-  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
 }
 
 .document-card {
-  margin-bottom: 20px;
+  background: white;
+  border-radius: var(--apple-border-radius);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  padding: 24px;
   cursor: pointer;
-  transition: transform 0.3s;
+  transition: var(--apple-transition);
+  box-shadow: var(--apple-shadow-sm);
 }
 
 .document-card:hover {
   transform: translateY(-4px);
+  box-shadow: var(--apple-shadow-lg);
+  border-color: rgba(0, 122, 255, 0.2);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 12px;
 }
 
 .doc-title {
-  font-weight: 500;
-  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--apple-text-primary);
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
   flex: 1;
 }
 
+.delete-btn {
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: var(--apple-transition);
+}
+
+.delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
 .card-content {
-  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .doc-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #666;
+  gap: 10px;
+  color: var(--apple-text-secondary);
   font-size: 14px;
-  margin-bottom: 8px;
+}
+
+.meta-icon {
+  font-size: 16px;
+  color: var(--apple-gray-4);
+}
+
+.meta-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-state {
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 0;
+  }
+  
+  .upload-section {
+    margin-bottom: 24px;
+  }
+  
+  .upload-card {
+    border-radius: var(--apple-border-radius);
+  }
+  
+  .upload-content {
+    padding: 32px 16px;
+    gap: 12px;
+  }
+  
+  .upload-icon-wrapper {
+    width: 64px;
+    height: 64px;
+  }
+  
+  .upload-icon {
+    font-size: 28px;
+  }
+  
+  .upload-title {
+    font-size: 18px;
+  }
+  
+  .upload-subtitle {
+    font-size: 14px;
+  }
+  
+  .upload-tip {
+    font-size: 12px;
+  }
+  
+  .library-section {
+    padding: 20px 16px;
+    border-radius: var(--apple-border-radius);
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .section-title {
+    font-size: 22px;
+  }
+  
+  .search-wrapper {
+    max-width: 100%;
+  }
+  
+  .document-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .document-card {
+    padding: 20px;
+  }
+  
+  .doc-title {
+    font-size: 16px;
+  }
+  
+  .doc-meta {
+    font-size: 13px;
+    gap: 8px;
+  }
+  
+  .meta-icon {
+    font-size: 14px;
+  }
 }
 </style>
-

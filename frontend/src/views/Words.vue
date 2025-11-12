@@ -214,7 +214,7 @@ onMounted(() => {
 
 <style scoped>
 .words-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -222,42 +222,46 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 24px 28px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  margin-bottom: 32px;
+  background: var(--apple-card-background);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  padding: 24px 32px;
+  border-radius: var(--apple-border-radius-lg);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--apple-shadow-md);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .back-button {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
-  transition: all 0.3s;
+  border-radius: 50%;
+  box-shadow: var(--apple-shadow-sm);
+  transition: var(--apple-transition);
 }
 
 .back-button:hover {
-  background: rgba(255, 255, 255, 0.3);
   transform: translateX(-2px);
+  box-shadow: var(--apple-shadow-md);
 }
 
 .words-header h2 {
   margin: 0;
-  color: white;
-  font-size: 24px;
-  font-weight: 600;
+  color: var(--apple-text-primary);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .word-count {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
+  background: var(--apple-gray-1);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  color: var(--apple-text-primary);
+  font-weight: 500;
 }
 
 .header-actions {
@@ -267,20 +271,24 @@ onMounted(() => {
 
 .words-list {
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
 .word-card {
   cursor: pointer;
-  transition: all 0.3s;
-  border-radius: 12px;
-  border: 1px solid #e4e7ed;
+  transition: var(--apple-transition);
+  border-radius: var(--apple-border-radius);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--apple-shadow-sm);
+  background: var(--apple-card-background);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
 .word-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
-  border-color: #667eea;
+  box-shadow: var(--apple-shadow-lg);
+  border-color: rgba(0, 122, 255, 0.2);
 }
 
 .word-header {
@@ -304,25 +312,26 @@ onMounted(() => {
 .word-title {
   font-size: 22px;
   font-weight: 600;
-  color: #333;
+  color: var(--apple-text-primary);
   margin: 0;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: var(--apple-transition);
+  letter-spacing: -0.3px;
 }
 
 .word-title:hover {
-  color: #667eea;
+  color: var(--apple-blue);
 }
 
 .detail-icon {
-  color: #909399;
+  color: var(--apple-gray-4);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--apple-transition);
   font-size: 18px;
 }
 
 .detail-icon:hover {
-  color: #667eea;
+  color: var(--apple-blue);
   transform: scale(1.1);
 }
 
@@ -330,7 +339,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
-  color: #666;
+  color: var(--apple-text-secondary);
   font-size: 14px;
   flex-wrap: wrap;
 }
@@ -349,57 +358,166 @@ onMounted(() => {
 }
 
 .word-detail-content {
-  padding: 16px 0;
+  padding: 24px 0;
 }
 
 .detail-header {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #e4e7ed;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
 }
 
 .phonetic {
   font-size: 16px;
-  color: #666;
-  margin-bottom: 12px;
+  color: var(--apple-text-secondary);
+  margin-bottom: 16px;
+  font-style: italic;
 }
 
 .detail-meta {
   display: flex;
-  gap: 8px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .contexts-section h4 {
-  margin-bottom: 16px;
-  color: #333;
+  margin-bottom: 20px;
+  color: var(--apple-text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
 .context-item {
-  padding: 16px;
-  background: #f5f7fa;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  padding: 20px;
+  background: var(--apple-gray-1);
+  border-radius: var(--apple-border-radius);
+  margin-bottom: 16px;
   cursor: pointer;
-  transition: all 0.2s;
-  border-left: 3px solid transparent;
+  transition: var(--apple-transition);
+  border-left: 4px solid transparent;
+  box-shadow: var(--apple-shadow-sm);
 }
 
 .context-item:hover {
-  background-color: #e4e7ed;
-  border-left-color: #667eea;
+  background-color: white;
+  border-left-color: var(--apple-blue);
   transform: translateX(4px);
+  box-shadow: var(--apple-shadow-md);
 }
 
 .context-doc {
-  font-size: 12px;
-  color: #667eea;
-  margin-bottom: 8px;
-  font-weight: 500;
+  font-size: 13px;
+  color: var(--apple-blue);
+  margin-bottom: 10px;
+  font-weight: 600;
 }
 
 .context-text {
-  color: #333;
-  line-height: 1.6;
+  color: var(--apple-text-primary);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+@media (max-width: 768px) {
+  .words-container {
+    padding: 0;
+  }
+  
+  .words-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 20px 16px;
+    margin-bottom: 24px;
+  }
+  
+  .header-left {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .words-header h2 {
+    font-size: 22px;
+  }
+  
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+  }
+  
+  .header-actions .el-select {
+    width: 100% !important;
+    margin-right: 0 !important;
+  }
+  
+  .words-list {
+    gap: 16px;
+  }
+  
+  .word-card {
+    padding: 16px;
+  }
+  
+  .word-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .word-title-wrapper {
+    margin-bottom: 8px;
+  }
+  
+  .word-title {
+    font-size: 20px;
+  }
+  
+  .word-meta {
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 13px;
+  }
+  
+  .word-actions {
+    width: 100%;
+  }
+  
+  .word-actions .el-select {
+    width: 100% !important;
+  }
+  
+  :deep(.el-dialog) {
+    width: 95% !important;
+    margin: 0 auto;
+  }
+  
+  .word-detail-content {
+    padding: 16px 0;
+  }
+  
+  .detail-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+  }
+  
+  .contexts-section h4 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+  
+  .context-item {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .context-doc {
+    font-size: 12px;
+  }
+  
+  .context-text {
+    font-size: 14px;
+  }
 }
 </style>
 
