@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: readsmart-db
+    environment:
+      POSTGRES_DB: readsmart
+      POSTGRES_USER: readsmart_user
+      POSTGRES_PASSWORD: readsmart123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U readsmart_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: readsmart-backend
+    environment:
+      DATABASE_URL: postgresql://readsmart_user:readsmart123@db:5432/readsmart
+      SECRET_KEY: your-secret-key-change-this-in-production
+      CORS_ORIGINS: '["http://localhost"]'
+    volumes:
+      - ./backend/uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: readsmart-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+
