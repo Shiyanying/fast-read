@@ -12,7 +12,7 @@
         :rules="rules"
         class="login-form"
       >
-        <el-form-item prop="password">
+        <el-form-item prop="password" :error="passwordError">
           <el-input
             v-model="loginForm.password"
             type="password"
@@ -20,7 +20,9 @@
             size="large"
             prefix-icon="Lock"
             class="apple-input"
+            :class="{ 'input-error': passwordError }"
             @keyup.enter="handleLogin"
+            @input="clearError"
           />
         </el-form-item>
         
@@ -50,6 +52,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const loginFormRef = ref(null)
 const loading = ref(false)
+const passwordError = ref('')
 
 const loginForm = reactive({
   password: ''
@@ -61,8 +64,14 @@ const rules = {
   ]
 }
 
+function clearError() {
+  passwordError.value = ''
+}
+
 async function handleLogin() {
   if (!loginFormRef.value) return
+  
+  clearError()
   
   await loginFormRef.value.validate(async (valid) => {
     if (valid) {
@@ -74,7 +83,8 @@ async function handleLogin() {
         ElMessage.success('验证成功')
         router.push('/')
       } else {
-        ElMessage.error(result.message)
+        passwordError.value = result.message || '密码错误，请重新输入'
+        ElMessage.error(result.message || '密码错误')
       }
     }
   })
@@ -143,6 +153,22 @@ async function handleLogin() {
 :deep(.apple-input .el-input__wrapper.is-focus) {
   box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.1);
   border-color: var(--rs-gray-900);
+}
+
+:deep(.input-error .el-input__wrapper) {
+  border-color: #f56565;
+  box-shadow: 0 0 0 2px rgba(245, 101, 101, 0.1);
+}
+
+:deep(.input-error .el-input__wrapper.is-focus) {
+  border-color: #f56565;
+  box-shadow: 0 0 0 2px rgba(245, 101, 101, 0.2);
+}
+
+:deep(.el-form-item__error) {
+  color: #f56565;
+  font-size: 13px;
+  margin-top: 6px;
 }
 
 .login-button {

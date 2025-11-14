@@ -96,9 +96,11 @@
     <el-dialog
       v-model="detailVisible"
       :title="selectedWordDetail?.word"
-      width="800px"
-      :close-on-click-modal="!isMobile"
+      :width="isMobile ? '95%' : '800px'"
+      :close-on-click-modal="true"
       :close-on-press-escape="true"
+      :show-close="true"
+      class="word-detail-dialog"
     >
       <div v-if="selectedWordDetail" class="word-detail-content">
         <div class="detail-header">
@@ -376,17 +378,55 @@ onUnmounted(() => {
   font-size: 15px;
 }
 
-:deep(.el-dialog) {
+:deep(.word-detail-dialog) {
   border-radius: 20px;
 }
 
-:deep(.el-dialog__header) {
-  padding: 24px 24px 0;
-  border-bottom: 1px solid #f5f5f5;
-  margin-bottom: 24px;
+:deep(.word-detail-dialog .el-dialog) {
+  margin: 0;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 
-:deep(.el-dialog__body) {
-  padding: 24px;
+:deep(.word-detail-dialog .el-dialog__header) {
+  padding: 20px 20px 0;
+  border-bottom: 1px solid #f5f5f5;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+:deep(.word-detail-dialog .el-dialog__body) {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+:deep(.word-detail-dialog .el-dialog__headerbtn) {
+  top: 20px;
+  right: 20px;
+}
+
+@media (max-width: 768px) {
+  :deep(.word-detail-dialog .el-dialog) {
+    width: 95% !important;
+    max-width: 95% !important;
+    margin: 5vh auto !important;
+    max-height: 90vh;
+  }
+  
+  :deep(.word-detail-dialog .el-dialog__header) {
+    padding: 16px 16px 0;
+    margin-bottom: 16px;
+  }
+  
+  :deep(.word-detail-dialog .el-dialog__body) {
+    padding: 16px;
+  }
+  
+  :deep(.word-detail-dialog .el-dialog__headerbtn) {
+    top: 16px;
+    right: 16px;
+  }
 }
 </style>
