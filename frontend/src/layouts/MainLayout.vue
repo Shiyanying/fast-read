@@ -6,6 +6,13 @@
           <h1 class="logo">ReadSmart</h1>
         </div>
         <div class="header-right">
+          <el-button
+            type="primary"
+            :icon="Collection"
+            @click="router.push('/words')"
+            class="words-button"
+            circle
+          />
           <el-dropdown @command="handleCommand" trigger="click" placement="bottom-end">
             <div class="user-info">
               <el-avatar :size="36" :icon="UserFilled" class="user-avatar" />
@@ -14,11 +21,7 @@
             </div>
             <template #dropdown>
               <el-dropdown-menu class="apple-dropdown">
-                <el-dropdown-item command="words" class="dropdown-item">
-                  <el-icon><Collection /></el-icon>
-                  <span>我的生词本</span>
-                </el-dropdown-item>
-                <el-dropdown-item divided command="logout" class="dropdown-item">
+                <el-dropdown-item command="logout" class="dropdown-item">
                   <el-icon><SwitchButton /></el-icon>
                   <span>退出</span>
                 </el-dropdown-item>
@@ -49,8 +52,6 @@ function handleCommand(command) {
     authStore.logout()
     ElMessage.success('已退出')
     router.push('/login')
-  } else if (command === 'words') {
-    router.push('/words')
   }
 }
 </script>
@@ -93,6 +94,23 @@ function handleCommand(command) {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.words-button {
+  border-radius: 50%;
+  box-shadow: var(--apple-shadow-sm);
+  transition: var(--apple-transition);
+}
+
+.words-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--apple-shadow-md);
 }
 
 .user-info {
@@ -170,6 +188,15 @@ function handleCommand(command) {
   
   .main-content {
     padding: 16px 12px;
+  }
+  
+  .header-right {
+    gap: 8px;
+  }
+  
+  .words-button {
+    width: 36px;
+    height: 36px;
   }
   
   .username {

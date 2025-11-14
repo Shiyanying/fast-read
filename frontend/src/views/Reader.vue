@@ -1024,9 +1024,10 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .reader-container {
     padding: 16px 12px;
-    border-radius: 0;
-    margin: -32px -32px 0;
+    border-radius: var(--apple-border-radius);
+    margin: 0;
     min-height: calc(100vh - 64px);
+    border: 0.5px solid rgba(0, 0, 0, 0.08);
   }
   
   .reader-header {
@@ -1067,6 +1068,7 @@ onUnmounted(() => {
     font-size: 16px;
     line-height: 1.8;
     min-height: 400px;
+    border: 0.5px solid rgba(0, 0, 0, 0.08);
   }
   
   .text-content {

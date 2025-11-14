@@ -213,7 +213,7 @@ onMounted(() => {
 }
 
 .upload-section {
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 
 .upload-card {
@@ -239,7 +239,7 @@ onMounted(() => {
 :deep(.el-upload-dragger) {
   background: transparent;
   border: none;
-  padding: 60px 40px;
+  padding: 32px 24px;
   width: 100%;
 }
 
@@ -247,12 +247,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .upload-icon-wrapper {
-  width: 80px;
-  height: 80px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--apple-blue) 0%, #5856D6 100%);
   display: flex;
@@ -262,7 +262,7 @@ onMounted(() => {
 }
 
 .upload-icon {
-  font-size: 36px;
+  font-size: 28px;
   color: white;
 }
 
@@ -271,14 +271,14 @@ onMounted(() => {
 }
 
 .upload-title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--apple-text-primary);
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
 }
 
 .upload-subtitle {
-  font-size: 15px;
+  font-size: 13px;
   color: var(--apple-text-secondary);
   margin: 0;
 }
@@ -290,10 +290,10 @@ onMounted(() => {
 }
 
 .upload-tip {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--apple-text-secondary);
   margin: 0;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .library-section {
@@ -455,30 +455,33 @@ onMounted(() => {
     border-radius: var(--apple-border-radius);
   }
   
+  :deep(.el-upload-dragger) {
+    padding: 24px 16px;
+  }
+  
   .upload-content {
-    padding: 32px 16px;
-    gap: 12px;
+    gap: 10px;
   }
   
   .upload-icon-wrapper {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
   }
   
   .upload-icon {
-    font-size: 28px;
+    font-size: 24px;
   }
   
   .upload-title {
-    font-size: 18px;
+    font-size: 15px;
   }
   
   .upload-subtitle {
-    font-size: 14px;
+    font-size: 12px;
   }
   
   .upload-tip {
-    font-size: 12px;
+    font-size: 11px;
   }
   
   .library-section {
