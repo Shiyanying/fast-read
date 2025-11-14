@@ -1,82 +1,64 @@
 <template>
-  <div class="words-container">
-    <div class="words-header">
-      <div class="header-left">
-        <el-button
-          type="primary"
-          :icon="ArrowLeft"
-          circle
-          @click="goToDashboard"
-          class="back-button"
-        />
-        <h2>我的生词本</h2>
-        <el-tag v-if="words.length > 0" type="info" size="large" class="word-count">
-          共 {{ words.length }} 个单词
-        </el-tag>
-      </div>
-      <div class="header-actions">
-        <el-select
-          v-model="sortBy"
-          placeholder="排序方式"
-          @change="fetchWords"
-          style="width: 150px; margin-right: 12px;"
-        >
-          <el-option label="点击时间" value="last_clicked_at" />
-          <el-option label="点击次数" value="click_count" />
-          <el-option label="字母顺序" value="word" />
-        </el-select>
-        
-        <el-select
-          v-model="masteryStatus"
-          placeholder="掌握状态"
-          clearable
-          @change="fetchWords"
-          style="width: 150px;"
-        >
-          <el-option label="生词" value="生词" />
-          <el-option label="熟悉" value="熟悉" />
-          <el-option label="已掌握" value="已掌握" />
-        </el-select>
-      </div>
-    </div>
-    
-    <div class="words-list">
-      <el-card
-        v-for="word in words"
-        :key="word.id"
-        class="word-card"
-        shadow="hover"
-      >
-        <div class="word-header">
-          <div class="word-info">
-            <div class="word-title-wrapper">
-              <h3 class="word-title" @click="showWordDetail(word.word)">
-                {{ word.word }}
-              </h3>
-              <el-icon class="detail-icon" @click="showWordDetail(word.word)">
-                <View />
-              </el-icon>
-            </div>
-            <div class="word-meta">
-              <el-tag size="small" :type="getStatusType(word.mastery_status)" effect="dark">
-                {{ word.mastery_status }}
-              </el-tag>
-              <span class="click-count">
-                <el-icon><Pointer /></el-icon>
-                点击 {{ word.click_count }} 次
-              </span>
-              <span class="click-time">
-                <el-icon><Clock /></el-icon>
-                {{ formatDate(word.last_clicked_at) }}
-              </span>
-            </div>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- 生词本卡片 -->
+    <div class="bg-white rounded-2xl soft-shadow-lg border border-gray-100">
+      <div class="p-6 border-b border-gray-100">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <h2 class="text-2xl font-bold text-gray-900">生词本</h2>
+          <div class="flex items-center gap-3">
+            <el-select
+              v-model="sortBy"
+              @change="fetchWords"
+              class="select-input"
+            >
+              <el-option label="点击时间" value="last_clicked_at" />
+              <el-option label="点击次数" value="click_count" />
+              <el-option label="字母顺序" value="word" />
+            </el-select>
+            
+            <el-select
+              v-model="masteryStatus"
+              clearable
+              @change="fetchWords"
+              class="select-input"
+            >
+              <el-option label="全部状态" value="" />
+              <el-option label="生词" value="生词" />
+              <el-option label="熟悉" value="熟悉" />
+              <el-option label="已掌握" value="已掌握" />
+            </el-select>
           </div>
-          <div class="word-actions">
+        </div>
+      </div>
+      
+      <div class="p-6">
+        <div class="space-y-3" v-if="words.length > 0">
+          <div
+            v-for="word in words"
+            :key="word.id"
+            class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50/50 transition-all cursor-pointer card-lift"
+            @click="showWordDetail(word.word)"
+          >
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-2">
+                <h3 class="text-xl font-semibold text-gray-900">{{ word.word }}</h3>
+                <span 
+                  class="px-2.5 py-1 text-xs font-semibold rounded-lg"
+                  :class="getStatusClass(word.mastery_status)"
+                >
+                  {{ word.mastery_status }}
+                </span>
+              </div>
+              <div class="flex items-center gap-4 text-sm text-gray-500">
+                <span>点击 {{ word.click_count }} 次</span>
+                <span>{{ formatDate(word.last_clicked_at) }}</span>
+              </div>
+            </div>
             <el-select
               :model-value="word.mastery_status"
               @change="updateWordStatus(word.word, $event)"
-              size="small"
-              style="width: 120px;"
+              @click.stop
+              class="status-select"
             >
               <el-option label="生词" value="生词" />
               <el-option label="熟悉" value="熟悉" />
@@ -84,13 +66,13 @@
             </el-select>
           </div>
         </div>
-      </el-card>
-      
-      <el-empty v-if="words.length === 0" description="暂无生词，快去阅读文档收集单词吧！">
-        <el-button type="primary" :icon="ArrowLeft" @click="goToDashboard">
-          返回主页
-        </el-button>
-      </el-empty>
+        
+        <el-empty v-else description="暂无生词，快去阅读文档收集单词吧！">
+          <el-button type="primary" @click="router.push('/')">
+            返回主页
+          </el-button>
+        </el-empty>
+      </div>
     </div>
     
     <!-- 单词详情对话框 -->
@@ -137,7 +119,6 @@
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, View, Pointer, Clock } from '@element-plus/icons-vue'
 import api from '@/api'
 
 const router = useRouter()
@@ -211,13 +192,18 @@ function getStatusType(status) {
   return map[status] || ''
 }
 
+function getStatusClass(status) {
+  const map = {
+    '生词': 'bg-red-50 text-red-700',
+    '熟悉': 'bg-yellow-50 text-yellow-700',
+    '已掌握': 'bg-green-50 text-green-700'
+  }
+  return map[status] || ''
+}
+
 function formatDate(dateString) {
   const date = new Date(dateString)
   return date.toLocaleDateString('zh-CN')
-}
-
-function goToDashboard() {
-  router.push('/')
 }
 
 onMounted(() => {
@@ -231,148 +217,48 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.words-container {
-  max-width: 1400px;
-  margin: 0 auto;
+:deep(.select-input) {
+  width: auto;
+  min-width: 150px;
 }
 
-.words-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-  background: var(--apple-card-background);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  padding: 24px 32px;
-  border-radius: var(--apple-border-radius-lg);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: var(--apple-shadow-md);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.back-button {
-  border-radius: 50%;
-  box-shadow: var(--apple-shadow-sm);
-  transition: var(--apple-transition);
-}
-
-.back-button:hover {
-  transform: translateX(-2px);
-  box-shadow: var(--apple-shadow-md);
-}
-
-.words-header h2 {
-  margin: 0;
-  color: var(--apple-text-primary);
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-}
-
-.word-count {
-  background: var(--apple-gray-1);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  color: var(--apple-text-primary);
-  font-weight: 500;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.words-list {
-  display: grid;
-  gap: 20px;
-}
-
-.word-card {
-  cursor: pointer;
-  transition: var(--apple-transition);
-  border-radius: var(--apple-border-radius);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: var(--apple-shadow-sm);
-  background: var(--apple-card-background);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-}
-
-.word-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--apple-shadow-lg);
-  border-color: rgba(0, 122, 255, 0.2);
-}
-
-.word-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.word-info {
-  flex: 1;
-}
-
-.word-title-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.word-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--apple-text-primary);
-  margin: 0;
-  cursor: pointer;
-  transition: var(--apple-transition);
-  letter-spacing: -0.3px;
-}
-
-.word-title:hover {
-  color: var(--apple-blue);
-}
-
-.detail-icon {
-  color: var(--apple-gray-4);
-  cursor: pointer;
-  transition: var(--apple-transition);
-  font-size: 18px;
-}
-
-.detail-icon:hover {
-  color: var(--apple-blue);
-  transform: scale(1.1);
-}
-
-.word-meta {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  color: var(--apple-text-secondary);
+:deep(.select-input .el-input__wrapper) {
+  padding: 10px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e5e5;
   font-size: 14px;
-  flex-wrap: wrap;
 }
 
-.click-count,
-.click-time {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
+:deep(.select-input .el-input__wrapper:hover) {
+  border-color: #d4d4d4;
 }
 
-.word-actions {
-  display: flex;
-  align-items: center;
+:deep(.select-input .el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.1);
+  border-color: #1a1a1a;
+}
+
+:deep(.status-select) {
+  width: auto;
+  min-width: 120px;
+}
+
+:deep(.status-select .el-input__wrapper) {
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e5e5;
+  font-size: 14px;
+}
+
+:deep(.status-select .el-input__wrapper:hover) {
+  border-color: #d4d4d4;
+}
+
+:deep(.status-select .el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.1);
+  border-color: #1a1a1a;
 }
 
 .word-detail-content {
@@ -382,12 +268,12 @@ onUnmounted(() => {
 .detail-header {
   margin-bottom: 32px;
   padding-bottom: 24px;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid #f5f5f5;
 }
 
 .phonetic {
   font-size: 16px;
-  color: var(--apple-text-secondary);
+  color: #737373;
   margin-bottom: 16px;
   font-style: italic;
 }
@@ -400,7 +286,7 @@ onUnmounted(() => {
 
 .contexts-section h4 {
   margin-bottom: 20px;
-  color: var(--apple-text-primary);
+  color: #1a1a1a;
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.3px;
@@ -408,134 +294,46 @@ onUnmounted(() => {
 
 .context-item {
   padding: 20px;
-  background: var(--apple-gray-1);
-  border-radius: var(--apple-border-radius);
+  background: #fafafa;
+  border-radius: 16px;
   margin-bottom: 16px;
   cursor: pointer;
-  transition: var(--apple-transition);
-  border-left: 4px solid transparent;
-  box-shadow: var(--apple-shadow-sm);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #f5f5f5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .context-item:hover {
   background-color: white;
-  border-left-color: var(--apple-blue);
-  transform: translateX(4px);
-  box-shadow: var(--apple-shadow-md);
+  border-color: #e5e5e5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .context-doc {
   font-size: 13px;
-  color: var(--apple-blue);
+  color: #4a4a4a;
   margin-bottom: 10px;
   font-weight: 600;
 }
 
 .context-text {
-  color: var(--apple-text-primary);
+  color: #1a1a1a;
   line-height: 1.7;
   font-size: 15px;
 }
 
-@media (max-width: 768px) {
-  .words-container {
-    padding: 0;
-  }
-  
-  .words-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-    padding: 20px 16px;
-    margin-bottom: 24px;
-  }
-  
-  .header-left {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  
-  .words-header h2 {
-    font-size: 22px;
-  }
-  
-  .header-actions {
-    flex-direction: column;
-    width: 100%;
-    gap: 12px;
-  }
-  
-  .header-actions .el-select {
-    width: 100% !important;
-    margin-right: 0 !important;
-  }
-  
-  .words-list {
-    gap: 16px;
-  }
-  
-  .word-card {
-    padding: 16px;
-  }
-  
-  .word-header {
-    flex-direction: column;
-    gap: 12px;
-  }
-  
-  .word-title-wrapper {
-    margin-bottom: 8px;
-  }
-  
-  .word-title {
-    font-size: 20px;
-  }
-  
-  .word-meta {
-    flex-wrap: wrap;
-    gap: 12px;
-    font-size: 13px;
-  }
-  
-  .word-actions {
-    width: 100%;
-  }
-  
-  .word-actions .el-select {
-    width: 100% !important;
-  }
-  
-  :deep(.el-dialog) {
-    width: 95% !important;
-    margin: 0 auto;
-  }
-  
-  .word-detail-content {
-    padding: 16px 0;
-  }
-  
-  .detail-header {
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-  }
-  
-  .contexts-section h4 {
-    font-size: 18px;
-    margin-bottom: 16px;
-  }
-  
-  .context-item {
-    padding: 16px;
-    margin-bottom: 12px;
-  }
-  
-  .context-doc {
-    font-size: 12px;
-  }
-  
-  .context-text {
-    font-size: 14px;
-  }
+:deep(.el-dialog) {
+  border-radius: 20px;
+}
+
+:deep(.el-dialog__header) {
+  padding: 24px 24px 0;
+  border-bottom: 1px solid #f5f5f5;
+  margin-bottom: 24px;
+}
+
+:deep(.el-dialog__body) {
+  padding: 24px;
 }
 </style>
-

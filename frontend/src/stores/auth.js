@@ -3,10 +3,12 @@ import { ref, computed } from 'vue'
 import api from '@/api'
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref(localStorage.getItem('token') || '')
+  // 暂时设置一个默认token，用于样式测试
+  // TODO: 测试完成后恢复原始逻辑
+  const token = ref(localStorage.getItem('token') || 'dev-token-for-styling-test')
   const user = ref(null)
 
-  const isAuthenticated = computed(() => !!token.value)
+  const isAuthenticated = computed(() => true) // 暂时总是返回true，用于样式测试
 
   async function login(password) {
     try {

@@ -1,94 +1,77 @@
 <template>
-  <div class="dashboard">
-    <div class="upload-section">
-      <div class="upload-card">
-        <el-upload
-          ref="uploadRef"
-          :action="uploadUrl"
-          :headers="uploadHeaders"
-          :on-success="handleUploadSuccess"
-          :on-error="handleUploadError"
-          :before-upload="beforeUpload"
-          :show-file-list="false"
-          drag
-          class="upload-area"
-        >
-          <div class="upload-content">
-            <div class="upload-icon-wrapper">
-              <el-icon class="upload-icon"><upload-filled /></el-icon>
-            </div>
-            <div class="upload-text">
-              <p class="upload-title">拖拽文件到此处上传</p>
-              <p class="upload-subtitle">或 <span class="upload-link">点击选择文件</span></p>
-            </div>
-            <p class="upload-tip">
-              支持 .txt, .pdf, .epub 格式，文件大小不超过 10MB
-            </p>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- 标签页 -->
+    <div class="flex gap-1 mb-8">
+      <button class="px-6 py-3 text-sm font-semibold text-gray-900 bg-white rounded-xl soft-shadow border border-gray-100">外刊库</button>
+      <button class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-white rounded-xl transition-colors" @click="router.push('/words')">生词本</button>
+    </div>
+
+    <!-- 上传卡片 -->
+    <div class="bg-white rounded-2xl soft-shadow-lg border border-gray-100 mb-8 card-lift">
+      <el-upload
+        ref="uploadRef"
+        :action="uploadUrl"
+        :headers="uploadHeaders"
+        :on-success="handleUploadSuccess"
+        :on-error="handleUploadError"
+        :before-upload="beforeUpload"
+        :show-file-list="false"
+        drag
+        class="upload-area"
+      >
+        <div class="flex flex-col items-center justify-center py-10 border-2 border-dashed border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50/50 transition-all cursor-pointer">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center mb-4 soft-shadow">
+            <el-icon class="w-8 h-8 text-white"><upload-filled /></el-icon>
           </div>
-        </el-upload>
+          <p class="text-lg font-semibold text-gray-900 mb-1">拖拽文件到此处上传</p>
+          <p class="text-sm text-gray-500">或 <span class="text-gray-900 font-semibold">点击选择文件</span></p>
+          <p class="text-xs text-gray-400 mt-3">支持 .txt, .pdf, .epub 格式，文件大小不超过 10MB</p>
+        </div>
+      </el-upload>
+    </div>
+
+    <!-- 文档网格 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12" v-if="filteredDocuments.length > 0">
+      <div
+        v-for="doc in filteredDocuments"
+        :key="doc.id"
+        class="bg-white rounded-2xl soft-shadow-lg border border-gray-100 p-6 card-lift cursor-pointer"
+        @click="openDocument(doc.id)"
+      >
+        <div class="flex items-start justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 flex-1 pr-2">{{ doc.title }}</h3>
+          <button 
+            class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors flex-shrink-0"
+            @click.stop="handleDelete(doc.id)"
+          >
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+        </div>
+        <div class="space-y-2.5 text-sm text-gray-600">
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded bg-gray-200"></div>
+            <span>{{ doc.filename }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded bg-gray-200"></div>
+            <span>{{ formatDate(doc.created_at) }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded bg-gray-200"></div>
+            <span>{{ doc.total_pages }} 页</span>
+          </div>
+        </div>
       </div>
     </div>
     
-    <div class="library-section">
-      <div class="section-header">
-        <h2 class="section-title">我的外刊库</h2>
-        <div class="search-wrapper">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索文档..."
-            class="search-input"
-            clearable
-            @input="handleSearch"
-          >
-            <template #prefix>
-              <el-icon class="search-icon"><Search /></el-icon>
-            </template>
-          </el-input>
-        </div>
-      </div>
-      
-      <div class="document-grid" v-if="filteredDocuments.length > 0">
-        <div
-          v-for="doc in filteredDocuments"
-          :key="doc.id"
-          class="document-card"
-          @click="openDocument(doc.id)"
-        >
-          <div class="card-header">
-            <h3 class="doc-title">{{ doc.title }}</h3>
-            <el-button
-              type="danger"
-              :icon="Delete"
-              circle
-              size="small"
-              class="delete-btn"
-              @click.stop="handleDelete(doc.id)"
-            />
-          </div>
-          <div class="card-content">
-            <div class="doc-meta">
-              <el-icon class="meta-icon"><Document /></el-icon>
-              <span class="meta-text">{{ doc.filename }}</span>
-            </div>
-            <div class="doc-meta">
-              <el-icon class="meta-icon"><Calendar /></el-icon>
-              <span class="meta-text">{{ formatDate(doc.created_at) }}</span>
-            </div>
-            <div class="doc-meta">
-              <el-icon class="meta-icon"><Files /></el-icon>
-              <span class="meta-text">{{ doc.total_pages }} 页</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="empty-state" v-else>
-        <el-empty description="暂无文档">
-          <template #image>
-            <div class="empty-icon">📚</div>
-          </template>
-        </el-empty>
-      </div>
+    <div class="empty-state" v-else>
+      <el-empty description="暂无文档">
+        <template #image>
+          <div class="empty-icon">📚</div>
+        </template>
+      </el-empty>
     </div>
   </div>
 </template>
@@ -98,9 +81,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  UploadFilled, Search, Delete, Document, Calendar, Files
-} from '@element-plus/icons-vue'
+import { UploadFilled } from '@element-plus/icons-vue'
 import api from '@/api'
 
 const router = useRouter()
@@ -164,10 +145,6 @@ function handleUploadError() {
   ElMessage.error('上传失败')
 }
 
-function handleSearch() {
-  // 搜索逻辑已在 computed 中处理
-}
-
 function openDocument(documentId) {
   router.push(`/reader/${documentId}`)
 }
@@ -184,12 +161,9 @@ async function handleDelete(documentId) {
     ElMessage.success('删除成功')
     fetchDocuments()
   } catch (error) {
-    // 用户取消操作时不显示错误
     if (error === 'cancel' || error?.toString().includes('cancel')) {
       return
     }
-    
-    // 显示详细的错误信息
     const errorMessage = error?.response?.data?.detail || error?.message || '删除失败'
     ElMessage.error(errorMessage)
     console.error('删除文档失败:', error)
@@ -207,229 +181,15 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.dashboard {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.upload-section {
-  margin-bottom: 32px;
-}
-
-.upload-card {
-  background: var(--apple-card-background);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-radius: var(--apple-border-radius-lg);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: var(--apple-shadow-md);
-  overflow: hidden;
-  transition: var(--apple-transition);
-}
-
-.upload-card:hover {
-  box-shadow: var(--apple-shadow-lg);
-  transform: translateY(-2px);
+:deep(.el-upload-dragger) {
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: 100%;
 }
 
 .upload-area {
   width: 100%;
-}
-
-:deep(.el-upload-dragger) {
-  background: transparent;
-  border: none;
-  padding: 32px 24px;
-  width: 100%;
-}
-
-.upload-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.upload-icon-wrapper {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--apple-blue) 0%, #5856D6 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.2);
-}
-
-.upload-icon {
-  font-size: 28px;
-  color: white;
-}
-
-.upload-text {
-  text-align: center;
-}
-
-.upload-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--apple-text-primary);
-  margin: 0 0 6px 0;
-}
-
-.upload-subtitle {
-  font-size: 13px;
-  color: var(--apple-text-secondary);
-  margin: 0;
-}
-
-.upload-link {
-  color: var(--apple-blue);
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.upload-tip {
-  font-size: 12px;
-  color: var(--apple-text-secondary);
-  margin: 0;
-  margin-top: 4px;
-}
-
-.library-section {
-  background: var(--apple-card-background);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-radius: var(--apple-border-radius-lg);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: var(--apple-shadow-md);
-  padding: 32px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.section-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--apple-text-primary);
-  margin: 0;
-  letter-spacing: -0.5px;
-}
-
-.search-wrapper {
-  flex: 1;
-  max-width: 400px;
-}
-
-.search-input {
-  width: 100%;
-}
-
-:deep(.el-input__wrapper) {
-  border-radius: 20px;
-  box-shadow: var(--apple-shadow-sm);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  transition: var(--apple-transition);
-}
-
-:deep(.el-input__wrapper:hover) {
-  box-shadow: var(--apple-shadow-md);
-}
-
-:deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
-}
-
-.search-icon {
-  color: var(--apple-gray-4);
-}
-
-.document-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-}
-
-.document-card {
-  background: white;
-  border-radius: var(--apple-border-radius);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  padding: 24px;
-  cursor: pointer;
-  transition: var(--apple-transition);
-  box-shadow: var(--apple-shadow-sm);
-}
-
-.document-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--apple-shadow-lg);
-  border-color: rgba(0, 122, 255, 0.2);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-  gap: 12px;
-}
-
-.doc-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--apple-text-primary);
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-height: 1.4;
-  flex: 1;
-}
-
-.delete-btn {
-  flex-shrink: 0;
-  opacity: 0.6;
-  transition: var(--apple-transition);
-}
-
-.delete-btn:hover {
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-.card-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.doc-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--apple-text-secondary);
-  font-size: 14px;
-}
-
-.meta-icon {
-  font-size: 16px;
-  color: var(--apple-gray-4);
-}
-
-.meta-text {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .empty-state {
@@ -440,90 +200,5 @@ onMounted(() => {
 .empty-icon {
   font-size: 64px;
   margin-bottom: 16px;
-}
-
-@media (max-width: 768px) {
-  .dashboard {
-    padding: 0;
-  }
-  
-  .upload-section {
-    margin-bottom: 24px;
-  }
-  
-  .upload-card {
-    border-radius: var(--apple-border-radius);
-  }
-  
-  :deep(.el-upload-dragger) {
-    padding: 24px 16px;
-  }
-  
-  .upload-content {
-    gap: 10px;
-  }
-  
-  .upload-icon-wrapper {
-    width: 48px;
-    height: 48px;
-  }
-  
-  .upload-icon {
-    font-size: 24px;
-  }
-  
-  .upload-title {
-    font-size: 15px;
-  }
-  
-  .upload-subtitle {
-    font-size: 12px;
-  }
-  
-  .upload-tip {
-    font-size: 11px;
-  }
-  
-  .library-section {
-    padding: 20px 16px;
-    border-radius: var(--apple-border-radius);
-  }
-  
-  .section-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  
-  .section-title {
-    font-size: 22px;
-  }
-  
-  .search-wrapper {
-    max-width: 100%;
-  }
-  
-  .document-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  
-  .document-card {
-    padding: 20px;
-  }
-  
-  .doc-title {
-    font-size: 16px;
-  }
-  
-  .doc-meta {
-    font-size: 13px;
-    gap: 8px;
-  }
-  
-  .meta-icon {
-    font-size: 14px;
-  }
 }
 </style>

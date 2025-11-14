@@ -87,7 +87,7 @@ async function handleLogin() {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
   padding: 20px;
 }
 
@@ -95,12 +95,10 @@ async function handleLogin() {
   width: 100%;
   max-width: 420px;
   padding: 48px 40px;
-  background: var(--apple-card-background);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-radius: var(--apple-border-radius-lg);
-  border: 0.5px solid rgba(255, 255, 255, 0.3);
-  box-shadow: var(--apple-shadow-lg);
+  background: var(--rs-white);
+  border-radius: var(--rs-radius-2xl);
+  border: 1px solid var(--rs-gray-100);
+  box-shadow: var(--rs-shadow-lg);
 }
 
 .login-header {
@@ -111,7 +109,7 @@ async function handleLogin() {
 .title {
   font-size: 36px;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--apple-blue) 0%, #5856D6 100%);
+  background: linear-gradient(to right, var(--rs-gray-900), var(--rs-gray-700));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -121,7 +119,7 @@ async function handleLogin() {
 
 .subtitle {
   font-size: 15px;
-  color: var(--apple-text-secondary);
+  color: var(--rs-gray-500);
   margin: 0;
 }
 
@@ -130,36 +128,40 @@ async function handleLogin() {
 }
 
 :deep(.apple-input .el-input__wrapper) {
-  border-radius: 12px;
-  box-shadow: var(--apple-shadow-sm);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  transition: var(--apple-transition);
+  border-radius: var(--rs-radius-xl);
+  box-shadow: var(--rs-shadow-sm);
+  border: 1px solid var(--rs-gray-200);
+  transition: var(--rs-transition);
   padding: 12px 16px;
 }
 
 :deep(.apple-input .el-input__wrapper:hover) {
-  box-shadow: var(--apple-shadow-md);
+  box-shadow: var(--rs-shadow-md);
+  border-color: var(--rs-gray-300);
 }
 
 :deep(.apple-input .el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.1);
+  border-color: var(--rs-gray-900);
 }
 
 .login-button {
   width: 100%;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--rs-radius-xl);
   font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--apple-blue) 0%, #5856D6 100%);
+  background: linear-gradient(to bottom right, var(--rs-gray-900), var(--rs-gray-800));
   border: none;
-  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
-  transition: var(--apple-transition);
+  box-shadow: var(--rs-shadow-sm);
+  transition: var(--rs-transition);
+  color: white;
 }
 
 .login-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+  box-shadow: var(--rs-shadow-md);
+  background: linear-gradient(to bottom right, var(--rs-gray-800), var(--rs-gray-700));
 }
 
 .login-button:active {
@@ -169,7 +171,7 @@ async function handleLogin() {
 .footer {
   text-align: center;
   margin-top: 32px;
-  color: var(--apple-text-secondary);
+  color: var(--rs-gray-500);
   font-size: 14px;
 }
 
@@ -179,7 +181,7 @@ async function handleLogin() {
 }
 
 :deep(.el-link__inner) {
-  color: var(--apple-blue);
+  color: var(--rs-gray-700);
 }
 
 @media (max-width: 480px) {

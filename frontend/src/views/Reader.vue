@@ -573,14 +573,12 @@ onUnmounted(() => {
 
 <style scoped>
 .reader-container {
-  max-width: 1000px;
+  max-width: 1280px;
   margin: 0 auto;
-  background: var(--apple-card-background);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-radius: var(--apple-border-radius-lg);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: var(--apple-shadow-md);
+  background: var(--rs-white);
+  border-radius: var(--rs-radius-2xl);
+  border: 1px solid var(--rs-gray-100);
+  box-shadow: var(--rs-shadow-lg);
   padding: 32px;
   min-height: calc(100vh - 160px);
   display: flex;
@@ -592,30 +590,30 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 32px;
-  padding-bottom: 20px;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--rs-gray-100);
   gap: 16px;
 }
 
 .back-button {
   flex-shrink: 0;
   border-radius: 50%;
-  box-shadow: var(--apple-shadow-sm);
-  transition: var(--apple-transition);
+  box-shadow: var(--rs-shadow-sm);
+  transition: var(--rs-transition);
 }
 
 .back-button:hover {
   transform: translateX(-2px);
-  box-shadow: var(--apple-shadow-md);
+  box-shadow: var(--rs-shadow-md);
 }
 
 .document-title {
   flex: 1;
   margin: 0;
   text-align: center;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
-  color: var(--apple-text-primary);
+  color: var(--rs-gray-900);
   letter-spacing: -0.5px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -624,12 +622,13 @@ onUnmounted(() => {
 
 .page-info {
   flex-shrink: 0;
-  color: var(--apple-text-secondary);
+  color: var(--rs-gray-600);
   font-size: 14px;
   font-weight: 500;
-  padding: 6px 14px;
-  background: var(--apple-gray-1);
-  border-radius: 20px;
+  padding: 8px 16px;
+  background: var(--rs-gray-50);
+  border-radius: var(--rs-radius-xl);
+  border: 1px solid var(--rs-gray-200);
 }
 
 .reader-content {
@@ -640,21 +639,21 @@ onUnmounted(() => {
 .text-area {
   min-height: 600px;
   padding: 48px 56px;
-  background: white;
-  border-radius: var(--apple-border-radius);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: var(--apple-shadow-sm);
-  line-height: 2;
+  background: var(--rs-white);
+  border-radius: var(--rs-radius-lg);
+  border: 1px solid var(--rs-gray-100);
+  box-shadow: var(--rs-shadow-sm);
+  line-height: 1.8;
   font-size: 18px;
-  transition: var(--apple-transition);
+  transition: var(--rs-transition);
 }
 
 .text-area:hover {
-  box-shadow: var(--apple-shadow-md);
+  box-shadow: var(--rs-shadow-md);
 }
 
 .text-content {
-  color: var(--apple-text-primary);
+  color: var(--rs-gray-900);
   white-space: pre-wrap;
   word-wrap: break-word;
   user-select: text;
@@ -663,8 +662,8 @@ onUnmounted(() => {
 
 .word-clickable {
   cursor: pointer;
-  transition: var(--apple-transition);
-  padding: 2px 4px;
+  transition: var(--rs-transition);
+  padding: 2px 6px;
   border-radius: 6px;
   display: inline-block;
   margin: 0 1px;
@@ -673,24 +672,24 @@ onUnmounted(() => {
 
 .word-clickable:hover,
 .word-hovered {
-  background-color: rgba(0, 122, 255, 0.15);
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
+  background-color: var(--rs-yellow-100);
+  box-shadow: 0 0 0 1px var(--rs-yellow-200);
   transform: scale(1.02);
 }
 
 .word-highlight {
-  background: linear-gradient(135deg, rgba(255, 204, 0, 0.2) 0%, rgba(255, 149, 0, 0.2) 100%);
+  background: var(--rs-yellow-100);
   padding: 2px 6px;
   border-radius: 6px;
   cursor: pointer;
-  transition: var(--apple-transition);
+  transition: var(--rs-transition);
   font-weight: 500;
 }
 
 .word-highlight:hover,
 .word-highlight.word-hovered {
-  background: linear-gradient(135deg, rgba(255, 204, 0, 0.3) 0%, rgba(255, 149, 0, 0.3) 100%);
-  box-shadow: 0 0 0 2px rgba(255, 149, 0, 0.4);
+  background: var(--rs-yellow-200);
+  box-shadow: 0 0 0 1px var(--rs-yellow-300);
   transform: scale(1.02);
 }
 
@@ -698,20 +697,23 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   padding-top: 24px;
-  border-top: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid var(--rs-gray-100);
 }
 
 :deep(.el-button) {
-  border-radius: 12px;
+  border-radius: var(--rs-radius-xl);
   font-weight: 500;
-  transition: var(--apple-transition);
+  transition: var(--rs-transition);
+  box-shadow: var(--rs-shadow-sm);
+  border: 1px solid var(--rs-gray-200);
 }
 
 :deep(.el-button:hover:not(:disabled)) {
   transform: translateY(-2px);
-  box-shadow: var(--apple-shadow-md);
+  box-shadow: var(--rs-shadow-md);
+  background: var(--rs-gray-100);
 }
 
 .page-input {
@@ -724,7 +726,7 @@ onUnmounted(() => {
 
 :deep(.el-input-number .el-input__wrapper) {
   border-radius: 12px;
-  box-shadow: var(--apple-shadow-sm);
+  box-shadow: var(--rs-shadow-sm);
 }
 
 .word-detail {
@@ -732,15 +734,15 @@ onUnmounted(() => {
 }
 
 .word-title {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  color: var(--apple-text-primary);
+  color: var(--rs-gray-900);
   margin-bottom: 12px;
   letter-spacing: -0.5px;
 }
 
 .phonetic {
-  color: var(--apple-text-secondary);
+  color: var(--rs-gray-500);
   font-size: 16px;
   margin-bottom: 24px;
   font-style: italic;
@@ -751,16 +753,17 @@ onUnmounted(() => {
 }
 
 .meaning-item {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
   padding: 20px;
-  background: var(--apple-gray-1);
-  border-radius: var(--apple-border-radius);
-  border-left: 4px solid var(--apple-blue);
+  background: var(--rs-gray-50);
+  border-radius: var(--rs-radius-lg);
+  border: 1px solid var(--rs-gray-100);
+  box-shadow: var(--rs-shadow-sm);
 }
 
 .part-of-speech {
   font-weight: 600;
-  color: var(--apple-blue);
+  color: var(--rs-gray-700);
   margin-bottom: 12px;
   font-size: 16px;
   text-transform: capitalize;
@@ -778,43 +781,41 @@ onUnmounted(() => {
 }
 
 .definition {
-  color: var(--apple-text-primary);
+  color: var(--rs-gray-900);
   margin-bottom: 8px;
   font-size: 15px;
   line-height: 1.6;
 }
 
 .example {
-  color: var(--apple-text-secondary);
+  color: var(--rs-gray-500);
   font-style: italic;
   font-size: 14px;
   margin-top: 8px;
   padding-left: 16px;
-  border-left: 2px solid var(--apple-gray-3);
+  border-left: 2px solid var(--rs-gray-200);
 }
 
 /* 简要预览弹窗样式 */
 .word-preview {
   position: fixed;
   z-index: 1000;
-  background: var(--apple-card-background);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-radius: 12px;
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: var(--apple-shadow-lg);
+  background: var(--rs-white);
+  border-radius: var(--rs-radius-lg);
+  border: 1px solid var(--rs-gray-100);
+  box-shadow: var(--rs-shadow-lg);
   padding: 14px 16px;
   max-width: 300px;
   min-width: 200px;
   cursor: pointer;
-  transition: var(--apple-transition);
+  transition: var(--rs-transition);
   pointer-events: auto;
 }
 
 .word-preview:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  border-color: rgba(0, 122, 255, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.12);
+  border-color: var(--rs-gray-200);
 }
 
 .word-preview-enter-active,
@@ -848,20 +849,20 @@ onUnmounted(() => {
 .preview-word {
   font-weight: 600;
   font-size: 15px;
-  color: var(--apple-text-primary);
+  color: var(--rs-gray-900);
   flex-shrink: 0;
 }
 
 .preview-hint {
   font-size: 11px;
-  color: var(--apple-blue);
+  color: var(--rs-gray-600);
   opacity: 0.7;
   white-space: nowrap;
 }
 
 .preview-meaning {
   font-size: 14px;
-  color: var(--apple-text-secondary);
+  color: var(--rs-gray-500);
   line-height: 1.5;
   word-break: break-word;
 }
@@ -879,26 +880,24 @@ onUnmounted(() => {
   bottom: -6px;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-top: 6px solid var(--apple-card-background);
+  border-top: 6px solid var(--rs-white);
 }
 
 .preview-arrow.arrow-up {
   top: -6px;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-bottom: 6px solid var(--apple-card-background);
+  border-bottom: 6px solid var(--rs-white);
 }
 
 /* 详细弹窗样式 */
 .word-detail-popover {
   position: fixed;
   z-index: 1001;
-  background: var(--apple-card-background);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-radius: var(--apple-border-radius-lg);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  box-shadow: var(--apple-shadow-lg);
+  background: var(--rs-white);
+  border-radius: var(--rs-radius-2xl);
+  border: 1px solid var(--rs-gray-100);
+  box-shadow: var(--rs-shadow-lg);
   max-width: 360px;
   max-height: 500px;
   overflow: hidden;
@@ -934,19 +933,19 @@ onUnmounted(() => {
 .popover-header .word-title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--apple-text-primary);
+  color: var(--rs-gray-900);
   margin: 0;
   letter-spacing: -0.3px;
 }
 
 .close-btn {
-  color: var(--apple-gray-4);
-  transition: var(--apple-transition);
+  color: var(--rs-gray-400);
+  transition: var(--rs-transition);
 }
 
 .close-btn:hover {
-  color: var(--apple-text-primary);
-  background-color: var(--apple-gray-1);
+  color: var(--rs-gray-900);
+  background-color: var(--rs-gray-50);
 }
 
 .popover-content {
@@ -957,7 +956,7 @@ onUnmounted(() => {
 }
 
 .popover-content .phonetic {
-  color: var(--apple-text-secondary);
+  color: var(--rs-gray-500);
   font-size: 15px;
   margin-bottom: 16px;
   font-style: italic;
@@ -970,14 +969,14 @@ onUnmounted(() => {
 .popover-content .meaning-item {
   margin-bottom: 20px;
   padding: 16px;
-  background: var(--apple-gray-1);
-  border-radius: var(--apple-border-radius);
-  border-left: 4px solid var(--apple-blue);
+  background: var(--rs-gray-50);
+  border-radius: var(--rs-radius-lg);
+  border-left: 4px solid var(--rs-gray-700);
 }
 
 .popover-content .part-of-speech {
   font-weight: 600;
-  color: var(--apple-blue);
+  color: var(--rs-gray-700);
   margin-bottom: 10px;
   font-size: 15px;
   text-transform: capitalize;
@@ -994,19 +993,19 @@ onUnmounted(() => {
 }
 
 .popover-content .definition {
-  color: var(--apple-text-primary);
+  color: var(--rs-gray-900);
   margin-bottom: 6px;
   font-size: 14px;
   line-height: 1.5;
 }
 
 .popover-content .example {
-  color: var(--apple-text-secondary);
+  color: var(--rs-gray-500);
   font-style: italic;
   font-size: 13px;
   margin-top: 6px;
   padding-left: 12px;
-  border-left: 2px solid var(--apple-gray-3);
+  border-left: 2px solid var(--rs-gray-200);
 }
 
 /* 移动端遮罩层 */
@@ -1024,7 +1023,7 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .reader-container {
     padding: 16px 12px;
-    border-radius: var(--apple-border-radius);
+    border-radius: var(--rs-radius-lg);
     margin: 0;
     min-height: calc(100vh - 64px);
     border: 0.5px solid rgba(0, 0, 0, 0.08);
