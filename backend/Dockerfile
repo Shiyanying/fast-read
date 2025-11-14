@@ -16,5 +16,5 @@ RUN mkdir -p uploads
 EXPOSE 8000
 
 # 启动命令（自动运行数据库迁移）
-CMD ["sh", "-c", "echo 'DATABASE_URL: $DATABASE_URL' && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
 

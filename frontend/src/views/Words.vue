@@ -98,6 +98,8 @@
       v-model="detailVisible"
       :title="selectedWordDetail?.word"
       width="800px"
+      :close-on-click-modal="!isMobile"
+      :close-on-press-escape="true"
     >
       <div v-if="selectedWordDetail" class="word-detail-content">
         <div class="detail-header">
@@ -132,7 +134,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, View, Pointer, Clock } from '@element-plus/icons-vue'
@@ -145,6 +147,17 @@ const sortBy = ref('last_clicked_at')
 const masteryStatus = ref('')
 const detailVisible = ref(false)
 const selectedWordDetail = ref(null)
+
+// 检测移动端
+const windowWidth = ref(window.innerWidth)
+const isMobile = computed(() => {
+  return windowWidth.value <= 768
+})
+
+// 监听窗口大小变化
+function handleResize() {
+  windowWidth.value = window.innerWidth
+}
 
 async function fetchWords() {
   try {
@@ -209,6 +222,11 @@ function goToDashboard() {
 
 onMounted(() => {
   fetchWords()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 

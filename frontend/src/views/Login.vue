@@ -12,21 +12,11 @@
         :rules="rules"
         class="login-form"
       >
-        <el-form-item prop="username">
-          <el-input
-            v-model="loginForm.username"
-            placeholder="用户名"
-            size="large"
-            prefix-icon="User"
-            class="apple-input"
-          />
-        </el-form-item>
-        
         <el-form-item prop="password">
           <el-input
             v-model="loginForm.password"
             type="password"
-            placeholder="密码"
+            placeholder="请输入访问密码"
             size="large"
             prefix-icon="Lock"
             class="apple-input"
@@ -42,17 +32,10 @@
             @click="handleLogin"
             class="login-button"
           >
-            登录
+            进入
           </el-button>
         </el-form-item>
       </el-form>
-      
-      <div class="footer">
-        <span>还没有账号？</span>
-        <el-link type="primary" @click="$router.push('/register')" class="link">
-          立即注册
-        </el-link>
-      </div>
     </div>
   </div>
 </template>
@@ -69,16 +52,12 @@ const loginFormRef = ref(null)
 const loading = ref(false)
 
 const loginForm = reactive({
-  username: '',
   password: ''
 })
 
 const rules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' }
-  ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' }
+    { required: true, message: '请输入访问密码', trigger: 'blur' }
   ]
 }
 
@@ -88,11 +67,11 @@ async function handleLogin() {
   await loginFormRef.value.validate(async (valid) => {
     if (valid) {
       loading.value = true
-      const result = await authStore.login(loginForm.username, loginForm.password)
+      const result = await authStore.login(loginForm.password)
       loading.value = false
       
       if (result.success) {
-        ElMessage.success('登录成功')
+        ElMessage.success('验证成功')
         router.push('/')
       } else {
         ElMessage.error(result.message)

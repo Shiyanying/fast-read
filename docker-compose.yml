@@ -22,7 +22,8 @@ services:
     environment:
       DATABASE_URL: postgresql://readsmart_user:readsmart123@db:5432/readsmart
       SECRET_KEY: your-secret-key-change-this-in-production
-      CORS_ORIGINS: '["http://localhost"]'
+      ACCESS_PASSWORD: readsmart123
+      CORS_ORIGINS: '["http://localhost", "http://localhost:80"]'
     volumes:
       - ./backend/uploads:/app/uploads
     ports:
@@ -37,7 +38,8 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_started
 
 volumes:
   postgres_data:

@@ -9,7 +9,7 @@
           <el-dropdown @command="handleCommand" trigger="click" placement="bottom-end">
             <div class="user-info">
               <el-avatar :size="36" :icon="UserFilled" class="user-avatar" />
-              <span class="username">{{ authStore.user?.username }}</span>
+              <span class="username">ReadSmart</span>
               <el-icon class="dropdown-icon"><arrow-down /></el-icon>
             </div>
             <template #dropdown>
@@ -20,7 +20,7 @@
                 </el-dropdown-item>
                 <el-dropdown-item divided command="logout" class="dropdown-item">
                   <el-icon><SwitchButton /></el-icon>
-                  <span>退出登录</span>
+                  <span>退出</span>
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -47,7 +47,7 @@ const authStore = useAuthStore()
 function handleCommand(command) {
   if (command === 'logout') {
     authStore.logout()
-    ElMessage.success('已退出登录')
+    ElMessage.success('已退出')
     router.push('/login')
   } else if (command === 'words') {
     router.push('/words')

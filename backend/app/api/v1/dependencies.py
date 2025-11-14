@@ -1,17 +1,11 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
-from app.core.database import get_db
 from app.core.security import decode_access_token
-from app.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
-) -> User:
-    """获取当前登录用户"""
+async def verify_token(token: str = Depends(oauth2_scheme)):
+    """验证token，不再需要用户信息"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="无效的认证凭据",
@@ -22,13 +16,14 @@ async def get_current_user(
     if payload is None:
         raise credentials_exception
     
-    username: str = payload.get("sub")
-    if username is None:
-        raise credentials_exception
-    
-    user = db.query(User).filter(User.username == username).first()
-    if user is None:
-        raise credentials_exception
-    
-    return user
+    # 只要token有效即可，不需要用户信息
+    return True
 
+# 为了兼容现有代码，保留get_current_user但返回None
+async def get_current_user(verified: bool = Depends(verify_token)):
+    """获取当前用户（简化版，返回None）"""
+    # 返回一个简单的对象，包含默认用户ID
+    class SimpleUser:
+        id = 1  # 使用固定的用户ID
+    
+    return SimpleUser()
