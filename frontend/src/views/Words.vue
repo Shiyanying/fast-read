@@ -4,7 +4,18 @@
     <div class="bg-white rounded-2xl soft-shadow-lg border border-gray-100">
       <div class="p-6 border-b border-gray-100">
         <div class="flex items-center justify-between flex-wrap gap-4">
-          <h2 class="text-2xl font-bold text-gray-900">生词本</h2>
+          <div class="flex items-center gap-3">
+            <button 
+              class="w-10 h-10 rounded-xl bg-white border border-gray-200 text-gray-700 flex items-center justify-center soft-shadow hover:border-gray-300 hover:bg-gray-50 transition-all"
+              @click="router.push('/')"
+              title="返回主页"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+              </svg>
+            </button>
+            <h2 class="text-2xl font-bold text-gray-900">生词本</h2>
+          </div>
           <div class="flex items-center gap-3">
             <el-select
               v-model="sortBy"
@@ -49,10 +60,16 @@
                   {{ word.mastery_status }}
                 </span>
               </div>
-              <div class="flex items-center gap-4 text-sm text-gray-500">
+              <div class="flex items-center gap-4 text-sm text-gray-500 mb-1">
                 <span>点击 {{ word.click_count }} 次</span>
                 <span>{{ formatDate(word.last_clicked_at) }}</span>
               </div>
+              <p v-if="word.translation" class="text-sm text-gray-600 mt-1.5 line-clamp-2">
+                {{ word.translation }}
+              </p>
+              <p v-if="word.loadingTranslation" class="text-sm text-gray-400 mt-1.5 italic">
+                加载翻译中...
+              </p>
             </div>
             <el-select
               :model-value="word.mastery_status"
@@ -153,9 +170,45 @@ async function fetchWords() {
     
     const response = await api.get('/words/', { params })
     words.value = response.data.words
+    
+    // 为每个单词获取翻译
+    await fetchTranslations(words.value)
   } catch (error) {
     ElMessage.error('获取生词列表失败')
   }
+}
+
+async function fetchTranslations(wordList) {
+  // 先标记所有单词为加载中
+  wordList.forEach(word => {
+    word.loadingTranslation = true
+    word.translation = null
+  })
+  
+  // 批量获取翻译，避免过多请求
+  const translationPromises = wordList.map(async (word) => {
+    try {
+      // 使用文档ID来查询翻译
+      const response = await api.get(`/words/lookup?word=${encodeURIComponent(word.word)}&document_id=${word.document_id}`)
+      const definition = response.data
+      
+      // 提取第一个意思的第一个定义作为翻译
+      if (definition.meanings && definition.meanings.length > 0) {
+        const firstMeaning = definition.meanings[0]
+        if (firstMeaning.definitions && firstMeaning.definitions.length > 0) {
+          word.translation = firstMeaning.definitions[0].definition
+        }
+      }
+    } catch (error) {
+      // 翻译获取失败不影响显示，静默处理
+      console.debug(`Failed to fetch translation for ${word.word}:`, error)
+    } finally {
+      word.loadingTranslation = false
+    }
+  })
+  
+  // 并发获取所有翻译
+  await Promise.all(translationPromises)
 }
 
 async function showWordDetail(word) {
