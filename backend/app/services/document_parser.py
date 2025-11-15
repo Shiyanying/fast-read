@@ -19,9 +19,19 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 def parse_text_file(file_path: str) -> Tuple[str, List[str]]:
-    """解析纯文本文件"""
+    """解析纯文本文件，支持Markdown格式（加粗、斜体）"""
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
+    
+    # 处理Markdown格式：将Markdown转换为HTML
+    # 加粗：**text** 或 __text__ -> <strong>text</strong>
+    content = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', content)
+    content = re.sub(r'__(.+?)__', r'<strong>\1</strong>', content)
+    
+    # 斜体：*text* 或 _text_ -> <em>text</em>
+    # 注意：需要避免与加粗冲突，先处理加粗再处理斜体
+    content = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'<em>\1</em>', content)
+    content = re.sub(r'(?<!_)_(?!_)(.+?)(?<!_)_(?!_)', r'<em>\1</em>', content)
     
     # 简单分页：每500个字符一页
     pages = []

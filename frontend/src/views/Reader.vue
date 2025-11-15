@@ -165,6 +165,13 @@ const previewPosition = ref('top') // 'top' 或 'bottom'，用于控制箭头方
 const wordCache = ref(new Map())
 const pendingRequests = ref(new Map()) // 防止重复请求
 
+// 单词本相关状态
+const lastClickedWord = ref(null) // 上次点击的单词
+const lastClickTime = ref(0) // 上次点击的时间
+const pendingWordTimer = ref(null) // 待添加单词的定时器
+const doubleClickTimer = ref(null) // 双击检测定时器
+const wordToAdd = ref(null) // 待添加到单词本的单词
+
 // 检测移动端
 const isMobile = computed(() => {
   return window.innerWidth <= 768
@@ -196,6 +203,19 @@ const highlightedContent = computed(() => {
   
   let content = currentPageContent.value
   
+  // 先保存HTML标签（如<strong>、<em>）中的内容，稍后恢复
+  const htmlTagMap = new Map()
+  let tagIndex = 0
+  
+  // 临时替换HTML标签，避免被单词匹配破坏
+  // 匹配各种HTML标签格式：<tag>content</tag>
+  content = content.replace(/<(strong|em|b|i|u)>([^<]*)<\/(strong|em|b|i|u)>/gi, (match, openTag, text, closeTag) => {
+    const placeholder = `__HTML_TAG_${tagIndex}__`
+    htmlTagMap.set(placeholder, { tag: openTag.toLowerCase(), text })
+    tagIndex++
+    return placeholder
+  })
+  
   // 将换行符转换为特殊标记，稍后恢复
   content = content.replace(/\n/g, '\n')
   
@@ -213,6 +233,18 @@ const highlightedContent = computed(() => {
     if (highlighted) className += ' word-highlight'
     if (hovered) className += ' word-hovered'
     return `<span class="${className}" data-word="${wordLower}">${word}</span>`
+  })
+  
+  // 恢复HTML标签（按索引倒序恢复，避免替换冲突）
+  const sortedPlaceholders = Array.from(htmlTagMap.keys()).sort((a, b) => {
+    const aIndex = parseInt(a.match(/\d+/)?.[0] || '0')
+    const bIndex = parseInt(b.match(/\d+/)?.[0] || '0')
+    return bIndex - aIndex // 倒序
+  })
+  
+  sortedPlaceholders.forEach(placeholder => {
+    const { tag, text } = htmlTagMap.get(placeholder)
+    content = content.replace(placeholder, `<${tag}>${text}</${tag}>`)
   })
   
   // 将换行符转换为 <br>
@@ -294,6 +326,13 @@ async function handleWordClick(event) {
   // 阻止事件冒泡，避免触发 handleClickOutside
   event.stopPropagation()
   
+  // 检查是否有文本选择（用户正在选择文本，不是点击）
+  const selection = window.getSelection()
+  if (selection && selection.toString().trim().length > 0) {
+    // 用户正在选择文本，不处理点击事件
+    return
+  }
+  
   // 获取点击的元素
   let target = event.target
   
@@ -309,20 +348,10 @@ async function handleWordClick(event) {
     }
   }
   
-  // 获取单词
+  // 获取单词 - 必须找到包含 data-word 的元素才处理
   const word = target?.dataset?.word
   if (!word) {
-    // 如果没有找到，尝试从文本中提取
-    const selection = window.getSelection()
-    if (selection.rangeCount > 0) {
-      const selectedText = selection.toString().trim()
-      const wordMatch = selectedText.match(/\b[a-zA-Z]+\b/)
-      if (wordMatch) {
-        const extractedWord = wordMatch[0].toLowerCase()
-        await lookupWord(extractedWord, event)
-        return
-      }
-    }
+    // 如果没有找到单词元素，直接返回，不尝试从selection中提取
     return
   }
   
@@ -450,6 +479,47 @@ async function lookupWord(word, event) {
   if (!word) return
   
   const wordLower = word.toLowerCase()
+  const currentTime = Date.now()
+  
+  // 清除之前的定时器
+  if (pendingWordTimer.value) {
+    clearTimeout(pendingWordTimer.value)
+    pendingWordTimer.value = null
+  }
+  if (doubleClickTimer.value) {
+    clearTimeout(doubleClickTimer.value)
+    doubleClickTimer.value = null
+  }
+  
+  // 处理单词本逻辑
+  // 检查是否是双击同一个单词（500ms内）
+  if (lastClickedWord.value === wordLower && (currentTime - lastClickTime.value) < 500) {
+    // 双击同一个单词，立即添加到单词本
+    await addWordToBook(wordLower)
+    lastClickedWord.value = null
+    lastClickTime.value = 0
+    wordToAdd.value = null
+  } else {
+    // 如果不是双击，设置定时器：3秒后如果未点击新单词，则添加上一个单词
+    if (wordToAdd.value && wordToAdd.value !== wordLower) {
+      // 点击了新单词，添加上一个单词
+      await addWordToBook(wordToAdd.value)
+    }
+    
+    // 更新待添加的单词
+    wordToAdd.value = wordLower
+    lastClickedWord.value = wordLower
+    lastClickTime.value = currentTime
+    
+    // 设置3秒定时器
+    pendingWordTimer.value = setTimeout(async () => {
+      if (wordToAdd.value === wordLower) {
+        await addWordToBook(wordLower)
+        wordToAdd.value = null
+      }
+      pendingWordTimer.value = null
+    }, 3000)
+  }
   
   // 检查本地缓存
   if (wordCache.value.has(wordLower)) {
@@ -461,6 +531,7 @@ async function lookupWord(word, event) {
     }
     previewVisible.value = true
     detailVisible.value = false
+    // 使用缓存时直接返回，单词本逻辑已在上面处理
     return
   }
   
@@ -473,10 +544,12 @@ async function lookupWord(word, event) {
   pendingRequests.value.set(wordLower, true)
   
   try {
+    // 查询单词定义，但不记录点击（record_click=false）
     const response = await api.get('/words/lookup', {
       params: {
         word: wordLower,
-        document_id: documentId.value
+        document_id: documentId.value,
+        record_click: false
       }
     })
     
@@ -491,7 +564,7 @@ async function lookupWord(word, event) {
     previewVisible.value = true
     detailVisible.value = false
     
-    // 记录已点击的单词
+    // 记录已点击的单词（仅用于高亮显示）
     clickedWords.value.add(wordLower)
   } catch (error) {
     console.error('查询单词失败:', error)
@@ -500,6 +573,25 @@ async function lookupWord(word, event) {
   } finally {
     isLoadingWord.value = false
     pendingRequests.value.delete(wordLower)
+  }
+}
+
+// 添加单词到单词本（调用API记录点击）
+async function addWordToBook(word) {
+  if (!word) return
+  
+  try {
+    // 调用lookup API来记录点击（record_click=true，这会自动添加到单词本）
+    await api.get('/words/lookup', {
+      params: {
+        word: word,
+        document_id: documentId.value,
+        record_click: true
+      }
+    })
+  } catch (error) {
+    // 静默处理错误，不影响用户体验
+    console.debug('添加单词到单词本失败:', error)
   }
 }
 
@@ -568,6 +660,14 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   window.removeEventListener('scroll', handleScroll, true)
+  
+  // 清理定时器
+  if (pendingWordTimer.value) {
+    clearTimeout(pendingWordTimer.value)
+  }
+  if (doubleClickTimer.value) {
+    clearTimeout(doubleClickTimer.value)
+  }
 })
 </script>
 

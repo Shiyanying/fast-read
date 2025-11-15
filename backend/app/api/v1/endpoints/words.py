@@ -19,10 +19,11 @@ router = APIRouter()
 async def lookup_word(
     word: str,
     document_id: int,
+    record_click: bool = True,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """查询单词释义并记录点击"""
+    """查询单词释义，可选择是否记录点击"""
     # 验证文档属于当前用户
     document = db.query(Document).filter(
         Document.id == document_id,
@@ -38,26 +39,27 @@ async def lookup_word(
     # 获取单词释义
     definition = await get_word_definition(word)
     
-    # 记录或更新点击
-    word_click = db.query(WordClick).filter(
-        WordClick.user_id == current_user.id,
-        WordClick.document_id == document_id,
-        WordClick.word == word.lower()
-    ).first()
-    
-    if word_click:
-        word_click.click_count += 1
-        word_click.last_clicked_at = datetime.utcnow()
-    else:
-        word_click = WordClick(
-            user_id=current_user.id,
-            document_id=document_id,
-            word=word.lower(),
-            click_count=1
-        )
-        db.add(word_click)
-    
-    db.commit()
+    # 如果record_click为True，记录或更新点击
+    if record_click:
+        word_click = db.query(WordClick).filter(
+            WordClick.user_id == current_user.id,
+            WordClick.document_id == document_id,
+            WordClick.word == word.lower()
+        ).first()
+        
+        if word_click:
+            word_click.click_count += 1
+            word_click.last_clicked_at = datetime.utcnow()
+        else:
+            word_click = WordClick(
+                user_id=current_user.id,
+                document_id=document_id,
+                word=word.lower(),
+                click_count=1
+            )
+            db.add(word_click)
+        
+        db.commit()
     
     return definition
 
@@ -186,4 +188,30 @@ async def update_word_status(
     db.refresh(word_clicks[0])
     
     return word_clicks[0]
+
+@router.delete("/{word}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_word(
+    word: str,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """从单词本中删除单词"""
+    word_clicks = db.query(WordClick).filter(
+        WordClick.user_id == current_user.id,
+        WordClick.word == word.lower()
+    ).all()
+    
+    if not word_clicks:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="单词不存在"
+        )
+    
+    # 删除所有相关记录
+    for wc in word_clicks:
+        db.delete(wc)
+    
+    db.commit()
+    
+    return None
 

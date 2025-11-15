@@ -71,16 +71,28 @@
                 加载翻译中...
               </p>
             </div>
-            <el-select
-              :model-value="word.mastery_status"
-              @change="updateWordStatus(word.word, $event)"
-              @click.stop
-              class="status-select"
-            >
-              <el-option label="生词" value="生词" />
-              <el-option label="熟悉" value="熟悉" />
-              <el-option label="已掌握" value="已掌握" />
-            </el-select>
+            <div class="flex items-center gap-3">
+              <el-select
+                :model-value="word.mastery_status"
+                @change="updateWordStatus(word.word, $event)"
+                @click.stop
+                class="status-select"
+              >
+                <el-option label="生词" value="生词" />
+                <el-option label="熟悉" value="熟悉" />
+                <el-option label="已掌握" value="已掌握" />
+              </el-select>
+              <el-button
+                type="danger"
+                text
+                circle
+                size="small"
+                @click.stop="deleteWord(word.word)"
+                title="删除单词"
+              >
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
           </div>
         </div>
         
@@ -137,7 +149,8 @@
 <script setup>
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Delete } from '@element-plus/icons-vue'
 import api from '@/api'
 
 const router = useRouter()
@@ -230,6 +243,28 @@ async function updateWordStatus(word, status) {
     fetchWords()
   } catch (error) {
     ElMessage.error('更新失败')
+  }
+}
+
+async function deleteWord(word) {
+  try {
+    await ElMessageBox.confirm(
+      `确定要从单词本中删除单词 "${word}" 吗？`,
+      '确认删除',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    await api.delete(`/words/${word}`)
+    ElMessage.success('删除成功')
+    fetchWords()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
   }
 }
 
