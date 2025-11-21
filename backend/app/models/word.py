@@ -9,7 +9,11 @@ class WordClick(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     document_id = Column(Integer, ForeignKey("documents.id"), nullable=False)
-    word = Column(String(100), nullable=False, index=True)
+    word = Column(String(100), nullable=False, index=True)  # 保留用于兼容性，存储选中文本的第一个单词
+    selected_text = Column(String(500), nullable=True)  # 用户选中的完整文本（可能是短语）
+    user_translation = Column(String(1000), nullable=True)  # 用户手动输入的翻译
+    page_number = Column(Integer, nullable=True)  # 单词所在页码，用于溯源
+    position_in_page = Column(Integer, nullable=True)  # 在页面中的字符偏移量
     click_count = Column(Integer, default=1)
     first_clicked_at = Column(DateTime(timezone=True), server_default=func.now())
     last_clicked_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

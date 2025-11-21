@@ -52,7 +52,7 @@
           >
             <div class="flex-1">
               <div class="flex items-center gap-3 mb-2">
-                <h3 class="text-xl font-semibold text-gray-900">{{ word.word }}</h3>
+                <h3 class="text-xl font-semibold text-gray-900">{{ word.selected_text || word.word }}</h3>
                 <span 
                   class="px-2.5 py-1 text-xs font-semibold rounded-lg"
                   :class="getStatusClass(word.mastery_status)"
@@ -64,11 +64,11 @@
                 <span>点击 {{ word.click_count }} 次</span>
                 <span>{{ formatDate(word.last_clicked_at) }}</span>
               </div>
-              <p v-if="word.translation" class="text-sm text-gray-600 mt-1.5 line-clamp-2">
-                {{ word.translation }}
+              <p v-if="word.user_translation" class="text-sm text-gray-600 mt-1.5 line-clamp-2">
+                {{ word.user_translation }}
               </p>
-              <p v-if="word.loadingTranslation" class="text-sm text-gray-400 mt-1.5 italic">
-                加载翻译中...
+              <p v-else class="text-sm text-gray-400 mt-1.5 italic">
+                暂无翻译
               </p>
             </div>
             <div class="flex items-center gap-3">
@@ -185,45 +185,9 @@ async function fetchWords() {
     
     const response = await api.get('/words/', { params })
     words.value = response.data.words
-    
-    // 为每个单词获取翻译
-    await fetchTranslations(words.value)
   } catch (error) {
     ElMessage.error('获取生词列表失败')
   }
-}
-
-async function fetchTranslations(wordList) {
-  // 先标记所有单词为加载中
-  wordList.forEach(word => {
-    word.loadingTranslation = true
-    word.translation = null
-  })
-  
-  // 批量获取翻译，避免过多请求
-  const translationPromises = wordList.map(async (word) => {
-    try {
-      // 使用文档ID来查询翻译
-      const response = await api.get(`/words/lookup?word=${encodeURIComponent(word.word)}&document_id=${word.document_id}`)
-      const definition = response.data
-      
-      // 提取第一个意思的第一个定义作为翻译
-      if (definition.meanings && definition.meanings.length > 0) {
-        const firstMeaning = definition.meanings[0]
-        if (firstMeaning.definitions && firstMeaning.definitions.length > 0) {
-          word.translation = firstMeaning.definitions[0].definition
-        }
-      }
-    } catch (error) {
-      // 翻译获取失败不影响显示，静默处理
-      console.debug(`Failed to fetch translation for ${word.word}:`, error)
-    } finally {
-      word.loadingTranslation = false
-    }
-  })
-  
-  // 并发获取所有翻译
-  await Promise.all(translationPromises)
 }
 
 async function showWordDetail(word) {

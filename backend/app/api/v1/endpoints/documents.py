@@ -25,7 +25,14 @@ async def upload_document(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """上传文档"""
+    """上传文档（仅支持TXT格式）"""
+    # 检查文件类型 - 仅支持TXT
+    if not (file.content_type == 'text/plain' or file.filename.endswith('.txt')):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="仅支持 .txt 格式的文件"
+        )
+    
     # 检查文件大小
     file_content = await file.read()
     if len(file_content) > settings.MAX_FILE_SIZE:

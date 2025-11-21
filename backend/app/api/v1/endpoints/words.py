@@ -6,27 +6,24 @@ from app.core.database import get_db
 from app.models.word import WordClick
 from app.models.document import Document, Page
 from app.schemas.word import (
-    WordDefinition, WordClickResponse, WordDetailResponse,
-    WordListResponse, WordContext
+    WordClickResponse, WordDetailResponse,
+    WordListResponse, WordContext, SaveSelectionRequest
 )
 from app.api.v1.dependencies import get_current_user
-from app.services.dictionary import get_word_definition
 from datetime import datetime
 
 router = APIRouter()
 
-@router.get("/lookup", response_model=WordDefinition)
-async def lookup_word(
-    word: str,
-    document_id: int,
-    record_click: bool = True,
+@router.post("/save-selection", response_model=WordClickResponse)
+async def save_selection(
+    request: SaveSelectionRequest,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """查询单词释义，可选择是否记录点击"""
+    """保存用户选择的文本和翻译到生词本"""
     # 验证文档属于当前用户
     document = db.query(Document).filter(
-        Document.id == document_id,
+        Document.id == request.document_id,
         Document.user_id == current_user.id
     ).first()
     
@@ -36,32 +33,41 @@ async def lookup_word(
             detail="文档不存在"
         )
     
-    # 获取单词释义
-    definition = await get_word_definition(word)
+    # 提取第一个单词作为word字段（用于索引和兼容性）
+    first_word = request.selected_text.strip().split()[0].lower() if request.selected_text.strip() else ""
     
-    # 如果record_click为True，记录或更新点击
-    if record_click:
-        word_click = db.query(WordClick).filter(
-            WordClick.user_id == current_user.id,
-            WordClick.document_id == document_id,
-            WordClick.word == word.lower()
-        ).first()
-        
-        if word_click:
-            word_click.click_count += 1
-            word_click.last_clicked_at = datetime.utcnow()
-        else:
-            word_click = WordClick(
-                user_id=current_user.id,
-                document_id=document_id,
-                word=word.lower(),
-                click_count=1
-            )
-            db.add(word_click)
-        
-        db.commit()
+    # 查找是否已存在相同的选择
+    word_click = db.query(WordClick).filter(
+        WordClick.user_id == current_user.id,
+        WordClick.document_id == request.document_id,
+        WordClick.selected_text == request.selected_text
+    ).first()
     
-    return definition
+    if word_click:
+        # 更新现有记录
+        word_click.user_translation = request.user_translation
+        word_click.click_count += 1
+        word_click.last_clicked_at = datetime.utcnow()
+        word_click.page_number = request.page_number
+        word_click.position_in_page = request.position_in_page
+    else:
+        # 创建新记录
+        word_click = WordClick(
+            user_id=current_user.id,
+            document_id=request.document_id,
+            word=first_word,
+            selected_text=request.selected_text,
+            user_translation=request.user_translation,
+            page_number=request.page_number,
+            position_in_page=request.position_in_page,
+            click_count=1
+        )
+        db.add(word_click)
+    
+    db.commit()
+    db.refresh(word_click)
+    
+    return word_click
 
 @router.get("/", response_model=WordListResponse)
 async def get_word_list(

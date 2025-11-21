@@ -2,23 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   ReadSmart 设计系统 - CSS变量
+   ======================================== */
+
+:root {
+  /* 圆角 */
+  --rs-radius-sm: 12px;
+  --rs-radius-md: 16px;
+  --rs-radius-lg: 20px;
+  --rs-radius-xl: 24px;
+  
+  /* 阴影 */
+  --rs-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --rs-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.08);
+  --rs-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.12);
+  --rs-shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.2);
+  
+  /* 间距 */
+  --rs-spacing-xs: 8px;
+  --rs-spacing-sm: 12px;
+  --rs-spacing-md: 16px;
+  --rs-spacing-lg: 24px;
+  --rs-spacing-xl: 32px;
+  
+  /* 过渡 */
+  --rs-transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --rs-transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --rs-transition-slow: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* 颜色 */
+  --rs-white: #ffffff;
+  --rs-gray-50: #fafafa;
+  --rs-gray-100: #f5f5f5;
+  --rs-gray-200: #e5e5e5;
+  --rs-gray-600: #737373;
+  --rs-gray-900: #1a1a1a;
+}
+
+/* ========================================
+   工具类
+   ======================================== */
+
 /* 柔和阴影 */
 .soft-shadow {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--rs-shadow-sm);
 }
 
 .soft-shadow-lg {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--rs-shadow-md);
 }
 
 /* 卡片悬停效果 */
 .card-lift {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: var(--rs-transition);
 }
 
 .card-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--rs-shadow-lg);
 }
 
 /* 文本截断 */
@@ -29,3 +71,96 @@
   overflow: hidden;
 }
 
+/* ========================================
+   Element Plus 组件覆盖
+   ======================================== */
+
+/* 对话框 */
+:deep(.el-dialog) {
+  border-radius: var(--rs-radius-xl) !important;
+  box-shadow: var(--rs-shadow-xl) !important;
+}
+
+/* 按钮 */
+:deep(.el-button) {
+  border-radius: var(--rs-radius-md) !important;
+  transition: var(--rs-transition) !important;
+}
+
+:deep(.el-button:hover) {
+  transform: translateY(-1px);
+}
+
+/* 输入框 */
+:deep(.el-input__wrapper) {
+  border-radius: var(--rs-radius-sm) !important;
+  transition: var(--rs-transition) !important;
+}
+
+:deep(.el-input__wrapper:hover) {
+  box-shadow: var(--rs-shadow-sm) !important;
+}
+
+/* 选择器 */
+:deep(.el-select .el-input__wrapper) {
+  border-radius: var(--rs-radius-sm) !important;
+}
+
+/* 上传组件 */
+:deep(.el-upload-dragger) {
+  border-radius: var(--rs-radius-lg) !important;
+  transition: var(--rs-transition) !important;
+}
+
+/* 空状态 */
+:deep(.el-empty) {
+  padding: var(--rs-spacing-xl) !important;
+}
+
+/* 标签 */
+:deep(.el-tag) {
+  border-radius: var(--rs-radius-sm) !important;
+}
+
+/* ========================================
+   全局动画
+   ======================================== */
+
+/* 淡入淡出 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 滑入 */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* 缩放 */
+.scale-enter-active,
+.scale-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scale-enter-from,
+.scale-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}

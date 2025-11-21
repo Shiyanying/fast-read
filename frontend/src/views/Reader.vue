@@ -17,90 +17,18 @@
       <div class="text-area" v-if="currentPageContent">
         <div
           class="text-content"
-          v-html="highlightedContent"
-          @click.stop="handleWordClick"
-          @mouseover="handleWordHover"
-          @mouseout="handleWordOut"
+          ref="textContentRef"
+          v-html="currentPageContent"
+          @mousedown="handleMouseDown"
+          @mouseup="handleMouseUp"
+          @touchstart="handleTouchStart"
+          @touchend="handleTouchEnd"
         />
       </div>
       
       <el-empty v-else-if="totalPages > 0" description="加载中..." />
       <el-empty v-else description="文档没有内容或加载失败" />
     </div>
-    
-    <!-- 简要释义预览弹窗 -->
-    <transition name="word-preview">
-      <div
-        v-if="selectedWord && previewVisible && !detailVisible"
-        class="word-preview"
-        :style="previewStyle"
-        @click.stop="showDetail"
-      >
-        <div class="preview-content">
-          <div class="preview-header">
-            <span class="preview-word">{{ selectedWord.word }}</span>
-            <span class="preview-hint">点击查看详情</span>
-          </div>
-          <span class="preview-meaning">{{ previewText }}</span>
-        </div>
-        <div class="preview-arrow" :class="previewPosition === 'top' ? 'arrow-down' : 'arrow-up'"></div>
-      </div>
-    </transition>
-    
-    <!-- 详细释义弹窗 -->
-    <transition name="word-detail-popover">
-      <div
-        v-if="selectedWord && detailVisible"
-        class="word-detail-popover"
-        :style="detailStyle"
-        @click.stop
-      >
-        <div class="popover-header">
-          <h3 class="word-title">{{ selectedWord.word }}</h3>
-          <el-button
-            text
-            circle
-            size="small"
-            class="close-btn"
-            @click="closePopover"
-          >
-            <el-icon><Close /></el-icon>
-          </el-button>
-        </div>
-        <div class="popover-content">
-          <p v-if="selectedWord.phonetic" class="phonetic">
-            {{ selectedWord.phonetic }}
-          </p>
-          <div class="meanings">
-            <div
-              v-for="(meaning, idx) in selectedWord.meanings"
-              :key="idx"
-              class="meaning-item"
-            >
-              <p class="part-of-speech">{{ meaning.partOfSpeech }}</p>
-              <ul class="definitions">
-                <li
-                  v-for="(def, defIdx) in meaning.definitions"
-                  :key="defIdx"
-                >
-                  <p class="definition">{{ def.definition }}</p>
-                  <p v-if="def.example" class="example">
-                    例: {{ def.example }}
-                  </p>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </transition>
-    
-    <!-- 遮罩层（移动端详细弹窗） -->
-    <div
-      v-if="detailVisible && isMobile"
-      class="popover-overlay"
-      @click="closePopover"
-    ></div>
     
     <div class="reader-footer">
       <el-button
@@ -129,15 +57,23 @@
       </el-button>
     </div>
     
+    <!-- Translation Modal -->
+    <TranslationModal
+      :visible="showTranslationModal"
+      :selected-text="selectedTextForSave"
+      @close="showTranslationModal = false"
+      @save="handleSaveTranslation"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, ArrowRight, Close } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import TranslationModal from '@/components/TranslationModal.vue'
 import api from '@/api'
 
 const route = useRoute()
@@ -150,114 +86,19 @@ const totalPages = ref(0)
 const currentPage = ref(1)
 const pageInput = ref(1)
 const currentPageContent = ref('')
-const selectedWord = ref(null)
-const previewVisible = ref(false)
-const detailVisible = ref(false)
-const clickedWords = ref(new Set())
-const isLoadingWord = ref(false)
-const hoveredWord = ref(null)
-const previewStyle = ref({})
-const detailStyle = ref({})
-const clickedElement = ref(null)
-const previewPosition = ref('top') // 'top' 或 'bottom'，用于控制箭头方向
+const textContentRef = ref(null)
 
-// 本地缓存单词释义（避免重复请求）
-const wordCache = ref(new Map())
-const pendingRequests = ref(new Map()) // 防止重复请求
-
-// 单词本相关状态
-const lastClickedWord = ref(null) // 上次点击的单词
-const lastClickTime = ref(0) // 上次点击的时间
-const pendingWordTimer = ref(null) // 待添加单词的定时器
-const doubleClickTimer = ref(null) // 双击检测定时器
-const wordToAdd = ref(null) // 待添加到单词本的单词
-
-// 检测移动端
-const isMobile = computed(() => {
-  return window.innerWidth <= 768
-})
-
-// 提取简要释义（第一个definition）
-const previewText = computed(() => {
-  if (!selectedWord.value || !selectedWord.value.meanings || selectedWord.value.meanings.length === 0) {
-    return '暂无释义'
-  }
-  
-  // 获取第一个meaning的第一个definition
-  const firstMeaning = selectedWord.value.meanings[0]
-  if (firstMeaning.definitions && firstMeaning.definitions.length > 0) {
-    const firstDef = firstMeaning.definitions[0].definition
-    // 限制长度，超过50字符截断
-    if (firstDef.length > 50) {
-      return firstDef.substring(0, 50) + '...'
-    }
-    return firstDef
-  }
-  
-  return '暂无释义'
-})
-
-// 将文本转换为可点击的单词元素
-const highlightedContent = computed(() => {
-  if (!currentPageContent.value) return ''
-  
-  let content = currentPageContent.value
-  
-  // 先保存HTML标签（如<strong>、<em>）中的内容，稍后恢复
-  const htmlTagMap = new Map()
-  let tagIndex = 0
-  
-  // 临时替换HTML标签，避免被单词匹配破坏
-  // 匹配各种HTML标签格式：<tag>content</tag>
-  content = content.replace(/<(strong|em|b|i|u)>([^<]*)<\/(strong|em|b|i|u)>/gi, (match, openTag, text, closeTag) => {
-    const placeholder = `__HTML_TAG_${tagIndex}__`
-    htmlTagMap.set(placeholder, { tag: openTag.toLowerCase(), text })
-    tagIndex++
-    return placeholder
-  })
-  
-  // 将换行符转换为特殊标记，稍后恢复
-  content = content.replace(/\n/g, '\n')
-  
-  // 将文本按单词边界分割，但保留分隔符
-  // 匹配单词：字母序列
-  const wordRegex = /\b([a-zA-Z]+)\b/g
-  const isHighlighted = (word) => clickedWords.value.has(word.toLowerCase())
-  const isHovered = (word) => hoveredWord.value === word.toLowerCase()
-  
-  content = content.replace(wordRegex, (match, word) => {
-    const wordLower = word.toLowerCase()
-    const highlighted = isHighlighted(wordLower)
-    const hovered = isHovered(wordLower)
-    let className = 'word-clickable'
-    if (highlighted) className += ' word-highlight'
-    if (hovered) className += ' word-hovered'
-    return `<span class="${className}" data-word="${wordLower}">${word}</span>`
-  })
-  
-  // 恢复HTML标签（按索引倒序恢复，避免替换冲突）
-  const sortedPlaceholders = Array.from(htmlTagMap.keys()).sort((a, b) => {
-    const aIndex = parseInt(a.match(/\d+/)?.[0] || '0')
-    const bIndex = parseInt(b.match(/\d+/)?.[0] || '0')
-    return bIndex - aIndex // 倒序
-  })
-  
-  sortedPlaceholders.forEach(placeholder => {
-    const { tag, text } = htmlTagMap.get(placeholder)
-    content = content.replace(placeholder, `<${tag}>${text}</${tag}>`)
-  })
-  
-  // 将换行符转换为 <br>
-  content = content.replace(/\n/g, '<br>')
-  
-  return content
-})
+// Text selection states
+const showTranslationModal = ref(false)
+const selectedTextForSave = ref('')
+const selectionStart = ref(null)
+const selectionPosition = ref(null)
+const longPressTimer = ref(null)
+const isLongPress = ref(false)
 
 async function fetchDocument() {
   try {
-    console.log('Fetching document:', documentId.value)
     const response = await api.get(`/documents/${documentId.value}`)
-    console.log('Document response:', response.data)
     documentTitle.value = response.data.title
     totalPages.value = response.data.total_pages || 0
     if (totalPages.value === 0) {
@@ -267,7 +108,6 @@ async function fetchDocument() {
     console.error('获取文档信息失败:', error)
     const errorMsg = error.response?.data?.detail || error.message || '获取文档信息失败'
     ElMessage.error(errorMsg)
-    // 如果文档不存在，返回上一页
     if (error.response?.status === 404) {
       setTimeout(() => {
         router.push('/')
@@ -278,11 +118,10 @@ async function fetchDocument() {
 
 async function fetchPage(pageNumber) {
   try {
-    console.log('Fetching page:', pageNumber, 'of document:', documentId.value)
     const response = await api.get(
       `/documents/${documentId.value}/pages/${pageNumber}`
     )
-    console.log('Page response:', response.data)
+    // 直接使用纯文本，不做单词高亮处理
     currentPageContent.value = response.data.content || ''
     currentPage.value = pageNumber
     pageInput.value = pageNumber
@@ -298,300 +137,104 @@ async function fetchPage(pageNumber) {
   }
 }
 
-function handleWordHover(event) {
-  let target = event.target
+// PC端鼠标选择
+function handleMouseDown(event) {
+  // 只响应右键
+  if (event.button !== 2) return
   
-  // 向上查找包含 data-word 的元素
-  while (target && !target.dataset?.word) {
-    if (target.classList?.contains('word-clickable')) {
-      break
-    }
-    target = target.parentElement
-    if (target === event.currentTarget) {
-      return
-    }
-  }
+  event.preventDefault()
+  isLongPress.value = false
+  selectionStart.value = { x: event.clientX, y: event.clientY }
   
-  const word = target?.dataset?.word
-  if (word) {
-    hoveredWord.value = word.toLowerCase()
+  // 清除现有选择
+  window.getSelection().removeAllRanges()
+}
+
+function handleMouseUp(event) {
+  if (event.button !== 2) return
+  
+  event.preventDefault()
+  processTextSelection()
+}
+
+// 移动端触摸选择
+function handleTouchStart(event) {
+  const touch = event.touches[0]
+  selectionStart.value = { x: touch.clientX, y: touch.clientY }
+  isLongPress.value = false
+  
+  // 长按检测
+  longPressTimer.value = setTimeout(() => {
+    isLongPress.value = true
+  }, 500) // 500ms判定为长按
+}
+
+function handleTouchEnd(event) {
+  clearTimeout(longPressTimer.value)
+  
+  if (isLongPress.value) {
+    event.preventDefault()
+    processTextSelection()
   }
 }
 
-function handleWordOut(event) {
-  hoveredWord.value = null
-}
-
-async function handleWordClick(event) {
-  // 阻止事件冒泡，避免触发 handleClickOutside
-  event.stopPropagation()
-  
-  // 检查是否有文本选择（用户正在选择文本，不是点击）
+// 处理文本选择
+function processTextSelection() {
   const selection = window.getSelection()
-  if (selection && selection.toString().trim().length > 0) {
-    // 用户正在选择文本，不处理点击事件
-    return
-  }
+  const selectedText = selection.toString().trim()
   
-  // 获取点击的元素
-  let target = event.target
-  
-  // 如果点击的是 mark 标签内的内容，向上查找包含 data-word 的元素
-  while (target && !target.dataset?.word) {
-    if (target.classList?.contains('word-clickable')) {
-      break
-    }
-    target = target.parentElement
-    // 防止无限循环
-    if (target === event.currentTarget) {
-      return
-    }
-  }
-  
-  // 获取单词 - 必须找到包含 data-word 的元素才处理
-  const word = target?.dataset?.word
-  if (!word) {
-    // 如果没有找到单词元素，直接返回，不尝试从selection中提取
-    return
-  }
-  
-  clickedElement.value = target
-  await lookupWord(word, event)
-}
-
-function calculatePreviewPosition(element) {
-  if (!element) return {}
-  
-  const rect = element.getBoundingClientRect()
-  const viewportWidth = window.innerWidth
-  const viewportHeight = window.innerHeight
-  
-  // 预览弹窗尺寸
-  const previewWidth = 280
-  const previewHeight = 60 // 估算高度
-  
-  // 计算位置：在单词上方居中
-  let left = rect.left + rect.width / 2 - previewWidth / 2
-  let top = rect.top - previewHeight - 12 // 在单词上方12px
-  
-  // 水平边界检测和调整
-  if (left < 16) left = 16
-  if (left + previewWidth > viewportWidth - 16) {
-    left = viewportWidth - previewWidth - 16
-  }
-  
-  // 判断预览位置
-  let position = 'top'
-  
-  // 如果上方空间不足，显示在下方
-  if (top < 16) {
-    top = rect.bottom + 12
-    position = 'bottom'
-    // 如果下方也不够，显示在单词旁边
-    if (top + previewHeight > viewportHeight - 16) {
-      // 优先显示在右侧
-      left = rect.right + 12
-      top = rect.top
-      position = 'right'
-      // 如果右侧不够，显示在左侧
-      if (left + previewWidth > viewportWidth - 16) {
-        left = rect.left - previewWidth - 12
-        position = 'left'
-      }
-    }
-  }
-  
-  // 更新位置状态
-  previewPosition.value = position
-  
-  return {
-    left: `${left}px`,
-    top: `${top}px`
-  }
-}
-
-function calculateDetailPosition(element) {
-  if (!element) return {}
-  
-  const rect = element.getBoundingClientRect()
-  const viewportWidth = window.innerWidth
-  const viewportHeight = window.innerHeight
-  
-  // 弹窗尺寸
-  const popoverWidth = isMobile.value ? Math.min(viewportWidth - 32, 360) : 360
-  const popoverHeight = 400 // 估算高度
-  
-  // 移动端特殊处理：居中显示
-  if (isMobile.value) {
-    return {
-      left: '50%',
-      top: '50%',
-      transform: 'translate(-50%, -50%)',
-      maxWidth: `${popoverWidth}px`,
-      width: `${popoverWidth}px`
-    }
-  }
-  
-  // 桌面端：根据单词位置动态定位，优先显示在右侧
-  let left = rect.right + 16 // 在单词右侧16px
-  let top = rect.top
-  
-  // 如果右侧空间不足，显示在左侧
-  if (left + popoverWidth > viewportWidth - 16) {
-    left = rect.left - popoverWidth - 16
-  }
-  
-  // 如果左侧也不够，居中显示
-  if (left < 16) {
-    left = (viewportWidth - popoverWidth) / 2
-    top = rect.top - popoverHeight / 2 + rect.height / 2
-  }
-  
-  // 垂直边界检测
-  if (top < 16) top = 16
-  if (top + popoverHeight > viewportHeight - 16) {
-    top = viewportHeight - popoverHeight - 16
-  }
-  
-  return {
-    left: `${left}px`,
-    top: `${top}px`,
-    maxWidth: `${popoverWidth}px`
-  }
-}
-
-function showDetail() {
-  detailVisible.value = true
-  if (clickedElement.value) {
-    detailStyle.value = calculateDetailPosition(clickedElement.value)
-  }
-}
-
-function closePopover() {
-  previewVisible.value = false
-  detailVisible.value = false
-  selectedWord.value = null
-  hoveredWord.value = null
-  clickedElement.value = null
-}
-
-async function lookupWord(word, event) {
-  if (!word) return
-  
-  const wordLower = word.toLowerCase()
-  const currentTime = Date.now()
-  
-  // 清除之前的定时器
-  if (pendingWordTimer.value) {
-    clearTimeout(pendingWordTimer.value)
-    pendingWordTimer.value = null
-  }
-  if (doubleClickTimer.value) {
-    clearTimeout(doubleClickTimer.value)
-    doubleClickTimer.value = null
-  }
-  
-  // 处理单词本逻辑
-  // 检查是否是双击同一个单词（500ms内）
-  if (lastClickedWord.value === wordLower && (currentTime - lastClickTime.value) < 500) {
-    // 双击同一个单词，立即添加到单词本
-    await addWordToBook(wordLower)
-    lastClickedWord.value = null
-    lastClickTime.value = 0
-    wordToAdd.value = null
-  } else {
-    // 如果不是双击，设置定时器：3秒后如果未点击新单词，则添加上一个单词
-    if (wordToAdd.value && wordToAdd.value !== wordLower) {
-      // 点击了新单词，添加上一个单词
-      await addWordToBook(wordToAdd.value)
-    }
+  if (selectedText) {
+    // 计算选中文本在页面中的大概位置
+    const range = selection.getRangeAt(0)
+    const textBeforeSelection = textContentRef.value.textContent.substring(
+      0,
+      getTextOffsetInContainer(textContentRef.value, range.startContainer, range.startOffset)
+    )
     
-    // 更新待添加的单词
-    wordToAdd.value = wordLower
-    lastClickedWord.value = wordLower
-    lastClickTime.value = currentTime
-    
-    // 设置3秒定时器
-    pendingWordTimer.value = setTimeout(async () => {
-      if (wordToAdd.value === wordLower) {
-        await addWordToBook(wordLower)
-        wordToAdd.value = null
-      }
-      pendingWordTimer.value = null
-    }, 3000)
+    selectedTextForSave.value = selectedText
+    selectionPosition.value = textBeforeSelection.length
+    showTranslationModal.value = true
   }
+}
+
+// 获取文本在容器中的偏移量
+function getTextOffsetInContainer(container, node, offset) {
+  let textOffset = 0
+  const walker = document.createTreeWalker(
+    container,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false
+  )
   
-  // 检查本地缓存
-  if (wordCache.value.has(wordLower)) {
-    selectedWord.value = wordCache.value.get(wordLower)
-    clickedWords.value.add(wordLower)
-    // 计算预览弹窗位置
-    if (clickedElement.value) {
-      previewStyle.value = calculatePreviewPosition(clickedElement.value)
+  let currentNode = walker.nextNode()
+  while (currentNode) {
+    if (currentNode === node) {
+      return textOffset + offset
     }
-    previewVisible.value = true
-    detailVisible.value = false
-    // 使用缓存时直接返回，单词本逻辑已在上面处理
-    return
+    textOffset += currentNode.textContent.length
+    currentNode = walker.nextNode()
   }
   
-  // 防止重复请求
-  if (pendingRequests.value.has(wordLower)) {
-    return
-  }
-  
-  isLoadingWord.value = true
-  pendingRequests.value.set(wordLower, true)
-  
+  return textOffset
+}
+
+// 保存翻译到生词本
+async function handleSaveTranslation(translation) {
   try {
-    // 查询单词定义，但不记录点击（record_click=false）
-    const response = await api.get('/words/lookup', {
-      params: {
-        word: wordLower,
-        document_id: documentId.value,
-        record_click: false
-      }
+    await api.post('/words/save-selection', {
+      selected_text: selectedTextForSave.value,
+      user_translation: translation,
+      document_id: documentId.value,
+      page_number: currentPage.value,
+      position_in_page: selectionPosition.value
     })
     
-    // 缓存结果
-    wordCache.value.set(wordLower, response.data)
-    selectedWord.value = response.data
-    
-    // 计算预览弹窗位置
-    if (clickedElement.value) {
-      previewStyle.value = calculatePreviewPosition(clickedElement.value)
-    }
-    previewVisible.value = true
-    detailVisible.value = false
-    
-    // 记录已点击的单词（仅用于高亮显示）
-    clickedWords.value.add(wordLower)
+    ElMessage.success('已添加到生词本')
   } catch (error) {
-    console.error('查询单词失败:', error)
-    const errorMsg = error.response?.data?.detail || error.message || '查询单词失败'
+    console.error('保存失败:', error)
+    const errorMsg = error.response?.data?.detail || error.message || '保存失败'
     ElMessage.error(errorMsg)
-  } finally {
-    isLoadingWord.value = false
-    pendingRequests.value.delete(wordLower)
-  }
-}
-
-// 添加单词到单词本（调用API记录点击）
-async function addWordToBook(word) {
-  if (!word) return
-  
-  try {
-    // 调用lookup API来记录点击（record_click=true，这会自动添加到单词本）
-    await api.get('/words/lookup', {
-      params: {
-        word: word,
-        document_id: documentId.value,
-        record_click: true
-      }
-    })
-  } catch (error) {
-    // 静默处理错误，不影响用户体验
-    console.debug('添加单词到单词本失败:', error)
   }
 }
 
@@ -613,6 +256,11 @@ function goToPage(page) {
   }
 }
 
+// 禁用右键菜单
+function handleContextMenu(event) {
+  event.preventDefault()
+}
+
 watch(() => route.params.documentId, (newId) => {
   documentId.value = parseInt(newId)
   fetchDocument()
@@ -620,53 +268,19 @@ watch(() => route.params.documentId, (newId) => {
   fetchPage(page)
 })
 
-// 点击外部关闭弹窗
-function handleClickOutside(event) {
-  if (previewVisible.value || detailVisible.value) {
-    // 如果点击的不是弹窗本身，也不是单词元素，则关闭
-    const isPreview = event.target.closest('.word-preview')
-    const isDetail = event.target.closest('.word-detail-popover')
-    const isWord = event.target.closest('.word-clickable')
-    if (!isPreview && !isDetail && !isWord) {
-      // 如果详细弹窗已打开，只关闭预览
-      if (detailVisible.value) {
-        previewVisible.value = false
-      } else {
-        closePopover()
-      }
-    }
-  }
-}
-
-// 滚动时更新预览位置或关闭预览（但保留详细弹窗）
-function handleScroll() {
-  if (previewVisible.value && clickedElement.value) {
-    // 更新预览位置
-    previewStyle.value = calculatePreviewPosition(clickedElement.value)
-  }
-  // 详细弹窗在滚动时不关闭，保持打开状态
-}
-
 onMounted(() => {
   fetchDocument()
   const page = parseInt(route.query.page) || 1
   fetchPage(page)
   
-  // 添加全局事件监听
-  document.addEventListener('click', handleClickOutside)
-  window.addEventListener('scroll', handleScroll, true)
+  // 添加右键菜单禁用
+  document.addEventListener('contextmenu', handleContextMenu)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-  window.removeEventListener('scroll', handleScroll, true)
-  
-  // 清理定时器
-  if (pendingWordTimer.value) {
-    clearTimeout(pendingWordTimer.value)
-  }
-  if (doubleClickTimer.value) {
-    clearTimeout(doubleClickTimer.value)
+  document.removeEventListener('contextmenu', handleContextMenu)
+  if (longPressTimer.value) {
+    clearTimeout(longPressTimer.value)
   }
 })
 </script>
@@ -675,14 +289,45 @@ onUnmounted(() => {
 .reader-container {
   max-width: 1280px;
   margin: 0 auto;
-  background: var(--rs-white);
-  border-radius: var(--rs-radius-2xl);
-  border: 1px solid var(--rs-gray-100);
-  box-shadow: var(--rs-shadow-lg);
-  padding: 32px;
+  background: linear-gradient(135deg, #FFFEF7 0%, #FFF8DC 100%);
+  border-radius: var(--rs-radius-xl);
+  border: 2px solid #D4A574;
+  box-shadow: 
+    0 10px 40px rgba(139, 69, 19, 0.2),
+    inset 0 0 60px rgba(212, 175, 116, 0.05);
+  padding: 40px;
   min-height: calc(100vh - 160px);
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 纸张纹理效果 */
+.reader-container::before {
+  content: '';
+  position: absolute;
+ top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 69, 19, 0.015) 2px,
+      rgba(139, 69, 19, 0.015) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 69, 19, 0.01) 2px,
+      rgba(139, 69, 19, 0.01) 4px
+    );
+  pointer-events: none;
+  opacity: 0.6;
 }
 
 .reader-header {
@@ -691,567 +336,184 @@ onUnmounted(() => {
   align-items: center;
   margin-bottom: 32px;
   padding-bottom: 24px;
-  border-bottom: 1px solid var(--rs-gray-100);
+  border-bottom: 2px solid rgba(212, 175, 116, 0.3);
   gap: 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .back-button {
   flex-shrink: 0;
-  border-radius: 50%;
-  box-shadow: var(--rs-shadow-sm);
-  transition: var(--rs-transition);
+  background: linear-gradient(135deg, #D4AF37 0%, #C19A2E 100%);
+  border: none;
+  color: #2C1810;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .back-button:hover {
-  transform: translateX(-2px);
-  box-shadow: var(--rs-shadow-md);
+  transform: translateX(-4px);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
 }
 
 .document-title {
   flex: 1;
   margin: 0;
   text-align: center;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--rs-gray-900);
-  letter-spacing: -0.5px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #2C1810;
+  letter-spacing: 0.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .page-info {
   flex-shrink: 0;
-  color: var(--rs-gray-600);
+  color: #5D4E3C;
   font-size: 14px;
-  font-weight: 500;
-  padding: 8px 16px;
-  background: var(--rs-gray-50);
-  border-radius: var(--rs-radius-xl);
-  border: 1px solid var(--rs-gray-200);
+  font-weight: 600;
+  padding: 10px 20px;
+  background: rgba(212, 175, 116, 0.15);
+  border-radius: var(--rs-radius-md);
+  border: 1px solid #D4A574;
+  box-shadow: inset 0 1px 3px rgba(212, 175, 116, 0.2);
 }
 
 .reader-content {
   flex: 1;
   margin-bottom: 32px;
+  position: relative;
+  z-index: 1;
 }
 
 .text-area {
   min-height: 600px;
-  padding: 48px 56px;
-  background: var(--rs-white);
+  padding: 56px 64px;
+  background: #FFFEF7;
   border-radius: var(--rs-radius-lg);
-  border: 1px solid var(--rs-gray-100);
-  box-shadow: var(--rs-shadow-sm);
-  line-height: 1.8;
+  border: 1px solid #E8DCC8;
+  box-shadow: 
+    inset 2px 2px 8px rgba(139, 69, 19, 0.08),
+    inset -2px -2px 8px rgba(255, 255, 255, 0.5),
+    0 4px 16px rgba(139, 69, 19, 0.1);
+  line-height: 1.9;
   font-size: 18px;
-  transition: var(--rs-transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 页面边缘阴影效果 */
+.text-area::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  box-shadow: 
+    inset 20px 0 30px -20px rgba(139, 69, 19, 0.1),
+    inset -20px 0 30px -20px rgba(139, 69, 19, 0.1);
+  pointer-events: none;
 }
 
 .text-area:hover {
-  box-shadow: var(--rs-shadow-md);
+  box-shadow: 
+    inset 2px 2px 10px rgba(139, 69, 19, 0.12),
+    inset -2px -2px 10px rgba(255, 255, 255, 0.6),
+    0 6px 20px rgba(139, 69, 19, 0.15);
 }
 
 .text-content {
-  color: var(--rs-gray-900);
+  color: #2C1810;
   white-space: pre-wrap;
   word-wrap: break-word;
   user-select: text;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
-}
-
-.word-clickable {
-  cursor: pointer;
-  transition: var(--rs-transition);
-  padding: 2px 6px;
-  border-radius: 6px;
-  display: inline-block;
-  margin: 0 1px;
+  font-family: Georgia, 'Times New Roman', serif;
   position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
 }
 
-.word-clickable:hover,
-.word-hovered {
-  background-color: var(--rs-yellow-100);
-  box-shadow: 0 0 0 1px var(--rs-yellow-200);
-  transform: scale(1.02);
-}
-
-.word-highlight {
-  background: var(--rs-yellow-100);
-  padding: 2px 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: var(--rs-transition);
-  font-weight: 500;
-}
-
-.word-highlight:hover,
-.word-highlight.word-hovered {
-  background: var(--rs-yellow-200);
-  box-shadow: 0 0 0 1px var(--rs-yellow-300);
-  transform: scale(1.02);
+.text-content::selection {
+  background: #fef08a;
+  color: #2C1810;
 }
 
 .reader-footer {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   padding-top: 24px;
-  border-top: 1px solid var(--rs-gray-100);
+  border-top: 2px solid rgba(212, 175, 116, 0.3);
+  position: relative;
+  z-index: 1;
 }
 
-:deep(.el-button) {
-  border-radius: var(--rs-radius-xl);
-  font-weight: 500;
-  transition: var(--rs-transition);
-  box-shadow: var(--rs-shadow-sm);
-  border: 1px solid var(--rs-gray-200);
-}
-
-:deep(.el-button:hover:not(:disabled)) {
-  transform: translateY(-2px);
-  box-shadow: var(--rs-shadow-md);
-  background: var(--rs-gray-100);
-}
-
-.page-input {
-  width: 100px;
-}
-
-:deep(.el-input-number) {
-  border-radius: 12px;
-}
-
-:deep(.el-input-number .el-input__wrapper) {
-  border-radius: 12px;
-  box-shadow: var(--rs-shadow-sm);
-}
-
-.word-detail {
-  padding: 24px 0;
-}
-
-.word-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--rs-gray-900);
-  margin-bottom: 12px;
-  letter-spacing: -0.5px;
-}
-
-.phonetic {
-  color: var(--rs-gray-500);
-  font-size: 16px;
-  margin-bottom: 24px;
-  font-style: italic;
-}
-
-.meanings {
-  margin-top: 24px;
-}
-
-.meaning-item {
-  margin-bottom: 24px;
-  padding: 20px;
-  background: var(--rs-gray-50);
-  border-radius: var(--rs-radius-lg);
-  border: 1px solid var(--rs-gray-100);
-  box-shadow: var(--rs-shadow-sm);
-}
-
-.part-of-speech {
+:deep(.reader-footer .el-button) {
+  background: linear-gradient(135deg, #D4AF37 0%, #C19A2E 100%);
+  border: none;
+  color: #2C1810;
   font-weight: 600;
-  color: var(--rs-gray-700);
-  margin-bottom: 12px;
-  font-size: 16px;
-  text-transform: capitalize;
-}
-
-.definitions {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.definitions li {
-  margin-bottom: 16px;
-  padding-left: 0;
-}
-
-.definition {
-  color: var(--rs-gray-900);
-  margin-bottom: 8px;
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.example {
-  color: var(--rs-gray-500);
-  font-style: italic;
-  font-size: 14px;
-  margin-top: 8px;
-  padding-left: 16px;
-  border-left: 2px solid var(--rs-gray-200);
-}
-
-/* 简要预览弹窗样式 */
-.word-preview {
-  position: fixed;
-  z-index: 1000;
-  background: var(--rs-white);
-  border-radius: var(--rs-radius-lg);
-  border: 1px solid var(--rs-gray-100);
-  box-shadow: var(--rs-shadow-lg);
-  padding: 14px 16px;
-  max-width: 300px;
-  min-width: 200px;
-  cursor: pointer;
-  transition: var(--rs-transition);
-  pointer-events: auto;
-}
-
-.word-preview:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.12);
-  border-color: var(--rs-gray-200);
-}
-
-.word-preview-enter-active,
-.word-preview-leave-active {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.word-preview-enter-from {
-  opacity: 0;
-  transform: translateY(8px) scale(0.95);
-}
-
-.word-preview-leave-to {
-  opacity: 0;
-  transform: translateY(8px) scale(0.95);
-}
-
-.preview-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.preview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.preview-word {
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--rs-gray-900);
-  flex-shrink: 0;
-}
-
-.preview-hint {
-  font-size: 11px;
-  color: var(--rs-gray-600);
-  opacity: 0.7;
-  white-space: nowrap;
-}
-
-.preview-meaning {
-  font-size: 14px;
-  color: var(--rs-gray-500);
-  line-height: 1.5;
-  word-break: break-word;
-}
-
-.preview-arrow {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-}
-
-.preview-arrow.arrow-down {
-  bottom: -6px;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 6px solid var(--rs-white);
-}
-
-.preview-arrow.arrow-up {
-  top: -6px;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 6px solid var(--rs-white);
-}
-
-/* 详细弹窗样式 */
-.word-detail-popover {
-  position: fixed;
-  z-index: 1001;
-  background: var(--rs-white);
-  border-radius: var(--rs-radius-2xl);
-  border: 1px solid var(--rs-gray-100);
-  box-shadow: var(--rs-shadow-lg);
-  max-width: 360px;
-  max-height: 500px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  width: 360px;
-}
-
-.word-detail-popover-enter-active,
-.word-detail-popover-leave-active {
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.word-detail-popover-enter-from {
-  opacity: 0;
-  transform: scale(0.9) translateY(-10px);
+:deep(.reader-footer .el-button:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
 }
 
-.word-detail-popover-leave-to {
-  opacity: 0;
-  transform: scale(0.9) translateY(-10px);
+:deep(.reader-footer .el-button:disabled) {
+  background: rgba(212, 175, 116, 0.3);
+  color: #8B7355;
 }
 
-.popover-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
-  flex-shrink: 0;
+.page-input {
+  width: 120px;
 }
 
-.popover-header .word-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--rs-gray-900);
-  margin: 0;
-  letter-spacing: -0.3px;
+:deep(.page-input .el-input-number__decrease),
+:deep(.page-input .el-input-number__increase) {
+  background: rgba(212, 175, 116, 0.2);
+  border-color: #D4A574;
+  color: #2C1810;
 }
 
-.close-btn {
-  color: var(--rs-gray-400);
-  transition: var(--rs-transition);
+:deep(.page-input .el-input__wrapper) {
+  background: rgba(255, 254, 247, 0.9);
+  border-color: #D4A574;
+  box-shadow: inset 0 1px 3px rgba(139, 69, 19, 0.1);
 }
 
-.close-btn:hover {
-  color: var(--rs-gray-900);
-  background-color: var(--rs-gray-50);
-}
-
-.popover-content {
-  padding: 20px;
-  overflow-y: auto;
-  flex: 1;
-  max-height: calc(500px - 60px);
-}
-
-.popover-content .phonetic {
-  color: var(--rs-gray-500);
-  font-size: 15px;
-  margin-bottom: 16px;
-  font-style: italic;
-}
-
-.popover-content .meanings {
-  margin-top: 16px;
-}
-
-.popover-content .meaning-item {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: var(--rs-gray-50);
-  border-radius: var(--rs-radius-lg);
-  border-left: 4px solid var(--rs-gray-700);
-}
-
-.popover-content .part-of-speech {
-  font-weight: 600;
-  color: var(--rs-gray-700);
-  margin-bottom: 10px;
-  font-size: 15px;
-  text-transform: capitalize;
-}
-
-.popover-content .definitions {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.popover-content .definitions li {
-  margin-bottom: 12px;
-}
-
-.popover-content .definition {
-  color: var(--rs-gray-900);
-  margin-bottom: 6px;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.popover-content .example {
-  color: var(--rs-gray-500);
-  font-style: italic;
-  font-size: 13px;
-  margin-top: 6px;
-  padding-left: 12px;
-  border-left: 2px solid var(--rs-gray-200);
-}
-
-/* 移动端遮罩层 */
-.popover-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(2px);
-  z-index: 999;
-}
-
+/* Responsive */
 @media (max-width: 768px) {
   .reader-container {
-    padding: 16px 12px;
-    border-radius: var(--rs-radius-lg);
-    margin: 0;
-    min-height: calc(100vh - 64px);
-    border: 0.5px solid rgba(0, 0, 0, 0.08);
-  }
-  
-  .reader-header {
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-  }
-  
-  .back-button {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .document-title {
-    font-size: 16px;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  
-  .page-info {
-    width: 100%;
-    text-align: center;
-    margin-top: 8px;
-    font-size: 12px;
-    padding: 4px 12px;
-  }
-  
-  .reader-content {
-    margin-bottom: 20px;
+    padding: 24px;
+    border-radius: var(--rs-radius-md);
   }
   
   .text-area {
-    padding: 24px 16px;
-    font-size: 16px;
-    line-height: 1.8;
+    padding: 32px 24px;
     min-height: 400px;
-    border: 0.5px solid rgba(0, 0, 0, 0.08);
-  }
-  
-  .text-content {
     font-size: 16px;
   }
   
-  .word-clickable {
-    padding: 1px 2px;
-    margin: 0;
+  .document-title {
+    font-size: 18px;
   }
   
   .reader-footer {
     flex-wrap: wrap;
     gap: 12px;
-    padding-top: 16px;
-  }
-  
-  .reader-footer .el-button {
-    flex: 1;
-    min-width: 80px;
-    font-size: 14px;
   }
   
   .page-input {
-    width: 80px;
-  }
-  
-  .word-preview {
-    max-width: calc(100vw - 32px);
-    min-width: 200px;
-    padding: 12px 14px;
-  }
-  
-  .preview-header {
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  
-  .preview-word {
-    font-size: 14px;
-  }
-  
-  .preview-hint {
-    font-size: 10px;
-  }
-  
-  .preview-meaning {
-    font-size: 13px;
-  }
-  
-  .word-detail-popover {
-    width: calc(100vw - 32px) !important;
-    max-width: none !important;
-    max-height: 70vh;
-    left: 50% !important;
-    top: 50% !important;
-    transform: translate(-50%, -50%) !important;
-  }
-  
-  .popover-header {
-    padding: 12px 16px;
-  }
-  
-  .popover-header .word-title {
-    font-size: 18px;
-  }
-  
-  .popover-content {
-    padding: 16px;
-    max-height: calc(70vh - 50px);
-  }
-  
-  .popover-content .meaning-item {
-    padding: 12px;
-    margin-bottom: 16px;
-  }
-  
-  .popover-content .definition {
-    font-size: 13px;
-  }
-  
-  .popover-content .example {
-    font-size: 12px;
+    width: 100px;
   }
 }
 </style>
-
